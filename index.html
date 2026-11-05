@@ -34,7 +34,7 @@ img { max-width: 100%; }
   --sel: rgba(255, 176, 0, 0.25);
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   --display: 'VT323', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-  --fs: 16px;
+  --fs: 14px;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
@@ -64,6 +64,7 @@ img { max-width: 100%; }
 
 [hidden] { display: none !important; }
 html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
   box-sizing: border-box;
@@ -72,7 +73,7 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   background: var(--bg);
   color: var(--fg);
-  font: var(--fs, 16px)/1.5 var(--mono);
+  font: var(--fs, 14px)/1.5 var(--mono);
 }
 ::selection { background: var(--sel); }
 .term {
@@ -117,7 +118,7 @@ body {
 .gap { height: 0.5rem; flex: none; }
 .brand {
   font-family: var(--display);
-  font-size: clamp(2.8rem, 10vw, 4rem);
+  font-size: clamp(2rem, 7vw, 2.8rem);
   line-height: 0.9;
   letter-spacing: 0.02em;
   color: var(--accent);
@@ -208,6 +209,7 @@ body {
   color: var(--fg);
   caret-color: var(--accent);
   font: inherit;
+  font-size: max(16px, 1em);
   max-height: 10rem;
 }
 #in:disabled { opacity: 0.4; }
@@ -276,7 +278,7 @@ body {
 .art {
   margin: 0;
   font-family: 'DejaVu Sans Mono', 'Apple Braille', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Menlo', var(--mono), monospace;
-  font-size: min(15px, calc((100vw - 36px) / 23));
+  font-size: min(11px, calc((100vw - 36px) / 31));
   line-height: 1;
   white-space: pre;
   color: #d6402f;
@@ -313,6 +315,7 @@ body {
   color: var(--fg);
   caret-color: var(--accent);
   font: inherit;
+  font-size: max(16px, 1em);
 }
 .gate .keep { display: flex; align-items: center; gap: 1ch; color: var(--dim); font-size: 0.85em; }
 .gate .keep input { accent-color: var(--accent); margin: 0; }
@@ -525,8 +528,8 @@ body {
   }
 
   /* ---------- configurações ---------- */
-  var CFG_KEY = 'pensamentos.cfg.v1';
-  var cfg = { color: '', size: 16 };
+  var CFG_KEY = 'pensamentos.cfg.v2';
+  var cfg = { color: '', size: 14 };
   var SWATCHES = [['âmbar', '#ffb000'], ['verde', '#33ff66'], ['ciano', '#4dd8e8'], ['rosa', '#ff7ac6'], ['branco', '#f2f2f2'], ['padrão', '']];
   function loadCfg() {
     try {
@@ -536,7 +539,7 @@ body {
         if (d && typeof d === 'object') {
           if (/^#[0-9a-f]{6}$/i.test(d.color)) cfg.color = d.color;
           var s = +d.size;
-          if (s >= 12 && s <= 28) cfg.size = Math.round(s);
+          if (s >= 10 && s <= 28) cfg.size = Math.round(s);
         }
       }
     } catch (e) {}
@@ -599,7 +602,7 @@ body {
 
     var sc = row('tamanho', 'cfg-size');
     var range = document.createElement('input');
-    range.type = 'range'; range.id = 'cfg-size'; range.min = 12; range.max = 28; range.step = 1; range.value = cfg.size;
+    range.type = 'range'; range.id = 'cfg-size'; range.min = 10; range.max = 28; range.step = 1; range.value = cfg.size;
     var val = document.createElement('span'); val.className = 'val'; val.textContent = cfg.size + ' px';
     range.addEventListener('input', function () {
       cfg.size = +range.value; val.textContent = cfg.size + ' px';
@@ -611,8 +614,8 @@ body {
     var rs = document.createElement('button');
     rs.type = 'button'; rs.className = 'opt'; rs.textContent = 'restaurar padrão';
     rs.addEventListener('click', function () {
-      cfg.color = ''; cfg.size = 16;
-      range.value = 16; val.textContent = '16 px'; picker.value = '#ffb000';
+      cfg.color = ''; cfg.size = 14;
+      range.value = 14; val.textContent = '14 px'; picker.value = '#ffb000';
       applyCfg(); saveCfg(); mark();
     });
     rc.appendChild(rs);
@@ -630,15 +633,15 @@ body {
       return;
     }
     if (a === 'reset' || a === 'padrao') {
-      cfg.color = ''; cfg.size = 16; applyCfg(); saveCfg();
+      cfg.color = ''; cfg.size = 14; applyCfg(); saveCfg();
       say('ok', 'configurações restauradas.');
       return;
     }
     var m = a.match(/^(cor|tamanho)\s+(.+)$/);
-    if (!m) { say('err', 'use: /config, /config cor <nome|#hex>, /config tamanho <12-28>'); return; }
+    if (!m) { say('err', 'use: /config, /config cor <nome|#hex>, /config tamanho <10-28>'); return; }
     if (m[1] === 'tamanho') {
       var n = parseInt(m[2], 10);
-      if (!(n >= 12 && n <= 28)) { say('err', 'o tamanho vai de 12 a 28.'); return; }
+      if (!(n >= 10 && n <= 28)) { say('err', 'o tamanho vai de 10 a 28.'); return; }
       cfg.size = n; applyCfg(); saveCfg();
       say('ok', 'tamanho da fonte: ' + n + ' px.');
       return;
