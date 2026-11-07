@@ -327,6 +327,7 @@ body {
 
 .keys { display: none; }
 .out > .art { flex: none; }
+.ai { border-left: 2px solid var(--accent); padding-left: 1.5ch; user-select: text; color: var(--fg); }
 @media (min-width: 900px) and (hover: hover) {
   .art, .gate .hero .art { font-size: 12px; }
   .term { max-width: 1080px; }
@@ -498,7 +499,7 @@ body {
 (function () {
   'use strict';
   var KEY = 'pensamentos.v2';
-  var VERSION = '1.7.2', BUILD = '2026-11-05';
+  var VERSION = '1.9.1', BUILD = '2026-11-05';
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out'), f = $('f'), inp = $('in'), modeEl = $('mode'), clock = $('clock');
   var MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -1113,6 +1114,450 @@ body {
     say('dim', 'tela limpa. nada foi apagado.');
   }
 
+  /* ---------- ferramentas de rede ---------- */
+  function normUrl(s) {
+    s = (s || '').trim();
+    if (!s) return null;
+    if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+    try {
+      var u = new URL(s);
+      if (!/^https?:$/.test(u.protocol) || u.hostname.indexOf('.') === -1) return null;
+      return u;
+    } catch (e) { return null; }
+  }
+  function needNet() {
+    if (navigator.onLine === false) { say('err', 'sem conexão com a internet neste aparelho.'); return false; }
+    return true;
+  }
+  function withTimeout(ms, start) {
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, ms);
+    return start(ctl ? ctl.signal : undefined).then(
+      function (v) { clearTimeout(timer); return v; },
+      function (e) { clearTimeout(timer); throw e; }
+    );
+  }
+  function getJSON(url, ms) {
+    return withTimeout(ms, function (signal) {
+      return fetch(url, { cache: 'no-store', credentials: 'omit', signal: signal }).then(function (r) {
+        if (!r.ok) throw new Error('http'); return r.json();
+      });
+    });
+  }
+  // mede o tempo até o servidor responder (resposta opaca: não dá para ler o status)
+  function probe(href, ms) {
+    var t0 = performance.now();
+    var u = href + (href.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    return withTimeout(ms, function (signal) {
+      return fetch(u, { mode: 'no-cors', cache: 'no-store', credentials: 'omit', signal: signal });
+    }).then(
+      function () { return { ok: true, ms: performance.now() - t0 }; },
+      function () { return { ok: false, ms: performance.now() - t0, timeout: performance.now() - t0 >= ms - 50 }; }
+    );
+  }
+  function cmdIp() {
+    if (!needNet()) return;
+    var el = say('dim', 'consultando seu IP público…');
+    getJSON('https://ipwho.is/', 6000).then(function (d) {
+      if (!d || !d.success || !d.ip) throw new Error('x');
+      d.src = 'ipwho.is'; return d;
+    }).catch(function () {
+      return getJSON('https://api.ipify.org?format=json', 6000).then(function (d) { return { ip: d.ip, src: 'ipify.org' }; });
+    }).then(function (d) {
+      var rows = [['ip público', String(d.ip)]];
+      var where = [d.city, d.region, d.country].filter(Boolean).join(', ');
+      if (where) rows.push(['local aproximado', where]);
+      if (d.connection && (d.connection.isp || d.connection.org)) rows.push(['provedor', d.connection.isp || d.connection.org]);
+      el.remove();
+      grid(rows, 'stat');
+      say('dim', 'consultado em ' + d.src + '. o local é só uma estimativa.');
+    }).catch(function () {
+      el.className = 'ln err';
+      el.textContent = 'não consegui consultar o IP. sem internet, ou algo bloqueou a consulta.';
+    });
+  }
+  function cmdPing(arg) {
+    if (!needNet()) return;
+    var def = !arg.trim();
+    var u = def ? new URL('https://www.cloudflare.com/cdn-cgi/trace') : normUrl(arg.trim().split(/[\s,]+/)[0]);
+    if (!u) { say('err', 'endereço inválido. exemplo: /ping google.com'); return; }
+    var host = def ? 'cloudflare.com' : u.hostname, N = 5, res = [];
+    var el = say('dim', 'testando ' + host + ' …');
+    function show(r) { return r.ok ? Math.round(r.ms) + ' ms' : 'falhou'; }
+    (function step(i) {
+      if (i === N) {
+        var ok = res.filter(function (r) { return r.ok; }).map(function (r) { return r.ms; });
+        if (!ok.length) { el.className = 'ln err'; el.textContent = host + ' não respondeu. fora do ar, ou o navegador bloqueou o teste.'; return; }
+        var sum = ok.reduce(function (a, b) { return a + b; }, 0);
+        el.remove();
+        grid([
+          ['destino', host],
+          ['respostas', ok.length + ' de ' + N],
+          ['mínimo', Math.round(Math.min.apply(null, ok)) + ' ms'],
+          ['média', Math.round(sum / ok.length) + ' ms'],
+          ['máximo', Math.round(Math.max.apply(null, ok)) + ' ms']
+        ], 'stat');
+        say('dim', 'tempo de ida e volta por HTTPS, não é o ping ICMP. o 1º envio inclui abrir a conexão.');
+        return;
+      }
+      probe(u.href, 5000).then(function (r) {
+        res.push(r);
+        el.textContent = 'testando ' + host + ' · ' + res.map(show).join(' · ') + ' …';
+        step(i + 1);
+      });
+    })(0);
+  }
+  function cmdSite(arg) {
+    var list = arg.trim().split(/[\s,]+/).filter(Boolean);
+    if (!list.length) { say('err', 'use /site <endereço>. exemplo: /site google.com github.com'); return; }
+    if (!needNet()) return;
+    list.slice(0, 8).forEach(function (raw) {
+      var u = normUrl(raw);
+      if (!u) { say('err', '✗ "' + raw + '" não parece um endereço.'); return; }
+      var el = say('dim', '… verificando ' + u.hostname);
+      probe(u.href, 8000).then(function (r) {
+        if (r.ok) { el.className = 'ln ok'; el.textContent = '● ' + u.hostname + ' no ar · respondeu em ' + Math.round(r.ms) + ' ms'; }
+        else { el.className = 'ln err'; el.textContent = '○ ' + u.hostname + (r.timeout ? ' não respondeu em 8 s' : ' não respondeu') + '. pode estar fora do ar, ou o navegador bloqueou o teste.'; }
+      });
+    });
+    if (list.length > 8) say('dim', 'só os 8 primeiros foram testados.');
+  }
+  function cmdRede() {
+    var c = navigator.connection || {};
+    var rows = [['conexão', navigator.onLine === false ? 'sem internet' : 'conectado']];
+    if (c.effectiveType) rows.push(['tipo estimado', String(c.effectiveType).toUpperCase()]);
+    if (c.downlink) rows.push(['velocidade estimada', c.downlink + ' Mbps']);
+    grid(rows, 'stat');
+    cmdIp();
+    cmdPing('');
+  }
+
+  /* ---------- assistente (IA) ---------- */
+  var AI_KEY = 'pensamentos.ia.v1', AI_CHATS_KEY = 'pensamentos.ia.chats.v1';
+  var AI_URL_DEFAULT = ''; // opcional: endereço do seu servidor da IA, se quiser deixar fixo no arquivo
+  var AI_MAX_CHATS = 30, AI_MAX_MSGS = 60, AI_SEND_MSGS = 20, AI_SEND_CHARS = 24000, AI_MAX_TEXT = 16000;
+  var AI_TIMEOUT = 40000, AI_PER_MIN = 12, AI_GAP = 1500;
+  var aiCfg = { url: '', token: '', ack: false };
+  var aiStore = { cur: null, chats: [] };
+  var aiMode = false, aiBusy = null, aiLast = 0, aiTimes = [], aiAnswer = '', aiModeBase = null, aiPendingDiary = false;
+
+  function aiLoad() {
+    try {
+      var o = JSON.parse(localStorage.getItem(AI_KEY));
+      if (o && typeof o === 'object') { aiCfg.url = String(o.url || ''); aiCfg.token = String(o.token || ''); aiCfg.ack = !!o.ack; }
+    } catch (e) {}
+    try {
+      var c = JSON.parse(localStorage.getItem(AI_CHATS_KEY));
+      if (c && Array.isArray(c.chats)) {
+        aiStore.chats = c.chats.filter(function (x) { return x && x.id && Array.isArray(x.msgs); });
+        aiStore.cur = c.cur || null;
+      }
+    } catch (e) {}
+  }
+  function aiSaveCfg() { try { localStorage.setItem(AI_KEY, JSON.stringify(aiCfg)); } catch (e) {} }
+  function aiSaveChats() {
+    aiStore.chats.sort(function (a, b) { return b.ts - a.ts; });
+    if (aiStore.chats.length > AI_MAX_CHATS) aiStore.chats.length = AI_MAX_CHATS;
+    for (var tries = 0; tries < 6; tries++) {
+      try { localStorage.setItem(AI_CHATS_KEY, JSON.stringify(aiStore)); return; }
+      catch (e) { if (aiStore.chats.length <= 1) return; aiStore.chats.pop(); }
+    }
+  }
+  aiLoad();
+
+  function aiUrl() { return (aiCfg.url || AI_URL_DEFAULT || '').replace(/\/+$/, ''); }
+  function aiChat(create) {
+    var c = null;
+    for (var i = 0; i < aiStore.chats.length; i++) if (aiStore.chats[i].id === aiStore.cur) c = aiStore.chats[i];
+    if (!c && create) { c = { id: newKey(), t: '', ts: Date.now(), msgs: [] }; aiStore.chats.unshift(c); aiStore.cur = c.id; }
+    return c;
+  }
+  function setAiMode(on) {
+    if (on === aiMode) return;
+    aiMode = on;
+    var lab = document.querySelector('.prompt');
+    if (lab) lab.textContent = on ? 'ia:~$' : 'mente:~$';
+    if (on) { aiModeBase = modeEl.textContent; modeEl.textContent = 'assistente ia'; }
+    else if (aiModeBase != null) { modeEl.textContent = aiModeBase; }
+  }
+  function aiClean(t) {
+    return String(t).replace(/\r/g, '')
+      .replace(/\*\*(.+?)\*\*/g, '$1').replace(/__(.+?)__/g, '$1')
+      .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+      .replace(/^(\s*)[*-]\s+/gm, '$1• ')
+      .replace(/\n{3,}/g, '\n\n').trim();
+  }
+  function aiShow(text) { var d = ln('ai'); d.textContent = aiClean(text); add(d); }
+  function aiSpin() {
+    var el = ln('dim'), fr = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'], i = 0, t0 = Date.now();
+    function tick() { el.textContent = fr[i++ % fr.length] + ' pensando… ' + Math.floor((Date.now() - t0) / 1000) + 's · /parar cancela'; }
+    tick(); add(el);
+    var id = setInterval(tick, 100);
+    return function () { clearInterval(id); el.remove(); };
+  }
+  function aiSetupHelp() {
+    say('err', 'o assistente ainda não está conectado ao seu servidor.');
+    say('dim', '1) publique o servidor (pasta emrys-ia, veja o LEIA-ME)');
+    say('dim', '2) /ia url https://SEU-SERVIDOR.workers.dev');
+    say('dim', '3) /ia token SUA-CHAVE-DE-ACESSO');
+    say('dim', 'depois use /ia status para conferir.');
+  }
+  function aiReady() {
+    if (!aiUrl() || !aiCfg.token) { aiSetupHelp(); return false; }
+    return true;
+  }
+  function aiPayload(chat) {
+    var msgs = chat.msgs.slice(-AI_SEND_MSGS), total = 0, res = [];
+    for (var i = msgs.length - 1; i >= 0; i--) {
+      var t = msgs[i].x || msgs[i].t;
+      if (res.length && total + t.length > AI_SEND_CHARS) break;
+      total += t.length;
+      res.unshift({ role: msgs[i].r === 'u' ? 'user' : 'model', text: t });
+    }
+    while (res.length && res[0].role !== 'user') res.shift();
+    return { messages: res };
+  }
+  function askAI(text, opts) {
+    opts = opts || {};
+    text = String(text || '').trim();
+    if (!text) return;
+    if (text.length > AI_MAX_TEXT || (opts.ctx && opts.ctx.length > AI_MAX_TEXT)) {
+      say('err', 'texto grande demais. o limite é ' + AI_MAX_TEXT + ' caracteres por mensagem.'); return;
+    }
+    if (aiBusy) { say('err', 'ainda estou respondendo. espere, ou use /parar.'); return; }
+    if (!needNet()) return;
+    if (!aiReady()) return;
+    var now = Date.now();
+    aiTimes = aiTimes.filter(function (t) { return now - t < 60000; });
+    if (aiTimes.length >= AI_PER_MIN) { say('err', 'muitas mensagens seguidas. espere um pouco (limite de ' + AI_PER_MIN + ' por minuto).'); return; }
+    if (now - aiLast < AI_GAP) { say('err', 'calma, espere um instante entre as mensagens.'); return; }
+
+    var chat = aiChat(true);
+    var um = { r: 'u', t: opts.shown || text, ts: now };
+    if (opts.ctx) um.x = opts.ctx;
+    chat.msgs.push(um);
+    if (chat.msgs.length > AI_MAX_MSGS) chat.msgs.splice(0, chat.msgs.length - AI_MAX_MSGS);
+    if (!chat.t) chat.t = (opts.title || text).replace(/\s+/g, ' ').slice(0, 48);
+    chat.ts = now;
+    aiTimes.push(now); aiLast = now;
+    setAiMode(true);
+    aiSaveChats();
+
+    var ctl = window.AbortController ? new AbortController() : null;
+    var state = { cancel: false, timeout: false, ctl: ctl, stop: aiSpin() };
+    aiBusy = state;
+    var timer = setTimeout(function () { state.timeout = true; if (ctl) ctl.abort(); }, AI_TIMEOUT);
+    function finish() { clearTimeout(timer); state.stop(); aiBusy = null; }
+    function fail(msg) {
+      finish();
+      var i = chat.msgs.lastIndexOf(um);
+      if (i !== -1) chat.msgs.splice(i, 1);
+      aiSaveChats();
+      say('err', msg);
+      say('dim', 'sua mensagem não foi enviada. a seta para cima repete o que você digitou.');
+    }
+    fetch(aiUrl() + '/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-emrys-token': aiCfg.token },
+      body: JSON.stringify(aiPayload(chat)),
+      cache: 'no-store', credentials: 'omit',
+      signal: ctl ? ctl.signal : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) { return { r: r, d: d }; });
+    }).then(function (x) {
+      if (!x.r.ok) {
+        var m = (x.d && x.d.error && x.d.error.message) || ('o servidor respondeu com erro (' + x.r.status + ').');
+        var ra = Number(x.r.headers.get('retry-after'));
+        if (x.r.status === 429 && ra) m += ' (cerca de ' + ra + ' s)';
+        if (x.r.status === 401) m += ' use /ia token <chave> para corrigir.';
+        return fail(m);
+      }
+      if (!x.d || typeof x.d.text !== 'string' || !x.d.text.trim()) return fail('a IA não devolveu resposta. tente de novo.');
+      finish();
+      chat.msgs.push({ r: 'm', t: x.d.text, ts: Date.now() });
+      chat.ts = Date.now();
+      aiSaveChats();
+      aiAnswer = x.d.text;
+      aiShow(x.d.text);
+      if (chat.msgs.length <= 2) say('dim', '/guardar salva essa resposta como pensamento · /nova começa outra conversa · /voltar sai do assistente');
+    }).catch(function () {
+      if (state.cancel) { finish(); var i = chat.msgs.lastIndexOf(um); if (i !== -1) chat.msgs.splice(i, 1); aiSaveChats(); say('dim', 'cancelado.'); return; }
+      if (state.timeout) return fail('a IA demorou demais. tente de novo.');
+      fail('não consegui falar com o servidor da IA. confira a internet e o endereço (/ia status).');
+    });
+  }
+  function thoughtText(arg) {
+    var m = /^#?(\d+)$/.exec(arg.trim());
+    if (!m) return null;
+    for (var i = 0; i < items.length; i++) if (items[i].n === +m[1]) return items[i].t;
+    return undefined;
+  }
+  function aiTextArg(arg, usage) {
+    arg = arg.trim();
+    if (!arg) { say('err', 'use ' + usage); return null; }
+    var t = thoughtText(arg);
+    if (t === undefined) { say('err', 'não achei esse pensamento.'); return null; }
+    return t === null ? arg : t;
+  }
+  function cmdResumir(arg) {
+    var t = aiTextArg(arg, '/resumir <texto ou nº do pensamento>'); if (t == null) return;
+    askAI('Resuma o texto a seguir em português, de forma clara e curta, mantendo os pontos principais:\n\n' + t, { title: 'resumo', shown: '/resumir ' + (arg.length > 200 ? arg.slice(0, 200) + '…' : arg), ctx: 'Resuma o texto a seguir em português, de forma clara e curta, mantendo os pontos principais:\n\n' + t });
+  }
+  function cmdCorrigir(arg) {
+    var t = aiTextArg(arg, '/corrigir <texto ou nº do pensamento>'); if (t == null) return;
+    var p = 'Corrija a ortografia, a gramática e a pontuação do texto a seguir, mantendo o meu jeito de escrever. Devolva primeiro o texto corrigido e depois, em poucas linhas, o que mudou:\n\n' + t;
+    askAI(p, { title: 'correção', shown: '/corrigir ' + (arg.length > 200 ? arg.slice(0, 200) + '…' : arg), ctx: p });
+  }
+  function cmdIdeias(arg) {
+    arg = arg.trim();
+    if (!arg) { say('err', 'use /ideias <tema>. exemplo: /ideias nomes para um livro de contos'); return; }
+    var p = 'Me dê de 5 a 8 ideias criativas e práticas sobre: ' + arg;
+    askAI(p, { title: 'ideias: ' + arg });
+  }
+  function cmdDiario(arg) {
+    var a = arg.trim(), per = 'semana', m = /^(hoje|semana|mes|mês|tudo)\b\s*([\s\S]*)$/i.exec(a);
+    if (m) { per = norm(m[1]); a = m[2].trim(); }
+    if (!items.length) { say('dim', 'seu diário está vazio. escreva alguns pensamentos primeiro.'); return; }
+    if (!aiCfg.ack) {
+      if (!aiPendingDiary) {
+        aiPendingDiary = true;
+        say('dim', 'atenção: este comando envia os seus pensamentos do período escolhido para o Google (Gemini) responderem.');
+        say('dim', 'no plano gratuito, o Google pode usar o conteúdo enviado para melhorar os produtos dele. não envie o que é muito íntimo.');
+        say('dim', 'para continuar, digite /diario de novo.');
+        return;
+      }
+      aiCfg.ack = true; aiSaveCfg();
+    }
+    var nowT = Date.now(), lim = per === 'hoje' ? 0 : per === 'semana' ? 7 : per === 'mes' ? 30 : Infinity;
+    var sel = items.filter(function (x) {
+      if (per === 'hoje') return dayKey(x.ts) === dayKey(nowT);
+      return lim === Infinity || nowT - x.ts <= lim * 86400000;
+    });
+    if (!sel.length) { say('dim', 'nenhum pensamento nesse período.'); return; }
+    var lines = [], size = 0, used = 0;
+    for (var i = sel.length - 1; i >= 0; i--) {
+      var l = '[' + fmt(sel[i].ts) + '] ' + sel[i].t;
+      if (size + l.length > AI_MAX_TEXT - 600) break;
+      lines.unshift(l); size += l.length + 1; used++;
+    }
+    var req = a || 'Organize em temas, faça um resumo do período e sugira 3 perguntas para eu refletir.';
+    var p = 'Estes são pensamentos do meu diário pessoal, cada um com a data. Pedido: ' + req + '\n\n' + lines.join('\n');
+    say('dim', 'enviando ' + used + (used === 1 ? ' pensamento' : ' pensamentos') + ' (' + (per === 'tudo' ? 'tudo' : per) + ') para a IA…' + (used < sel.length ? ' só os mais recentes couberam.' : ''));
+    askAI(req, { title: 'diário · ' + per, shown: '/diario ' + per + ' · ' + used + ' pensamentos · ' + req, ctx: p });
+  }
+  function cmdIa(arg) {
+    var m = /^(\S+)\s*([\s\S]*)$/.exec(arg.trim()), sub = m ? norm(m[1]) : '', rest = m ? m[2].trim() : '';
+    if (sub === 'url') {
+      var u = rest.replace(/\/(chat|health)?\/?$/, '').replace(/\/+$/, '');
+      if (!/^https:\/\/[^\s/]+\.[^\s/]+/i.test(u) && !/^http:\/\/localhost(:\d+)?$/i.test(u)) { say('err', 'use o endereço completo com https. exemplo: /ia url https://emrys-ia.seunome.workers.dev'); return; }
+      aiCfg.url = u; aiSaveCfg(); say('ok', 'servidor guardado: ' + u);
+      return;
+    }
+    if (sub === 'token') {
+      var last = out.lastElementChild;
+      if (last && last.classList.contains('echo')) last.remove();   // não deixa a chave aparecendo na tela
+      hist.pop(); hi = hist.length;
+      if (rest.length < 8) { say('err', 'use /ia token <chave de acesso>, a mesma que você pôs no servidor (mínimo 8 caracteres).'); return; }
+      aiCfg.token = rest; aiSaveCfg(); say('ok', 'chave de acesso guardada neste aparelho (' + rest.length + ' caracteres). ela não fica visível na tela.');
+      return;
+    }
+    if (sub === 'esquecer') { aiCfg.url = ''; aiCfg.token = ''; aiCfg.ack = false; aiSaveCfg(); say('ok', 'endereço e chave de acesso removidos deste aparelho.'); return; }
+    if (sub === 'status') { return aiStatus(); }
+    if (sub === 'modelos') { return aiModels(); }
+    if (!sub) {
+      if (!aiReady()) return;
+      setAiMode(true);
+      say('ok', '● assistente ligado. escreva normalmente e a IA responde. seus pensamentos não são salvos enquanto estiver aqui.');
+      say('dim', '/voltar sai · /nova nova conversa · /conversas histórico · /resumir /corrigir /ideias /diario · /guardar salva a última resposta.');
+      return;
+    }
+    askAI(arg);
+  }
+  function aiStatus() {
+    var u = aiUrl();
+    grid([
+      ['servidor', u || 'não definido'],
+      ['chave de acesso', aiCfg.token ? 'definida' : 'não definida'],
+      ['conversas salvas', String(aiStore.chats.length)],
+      ['modo assistente', aiMode ? 'ligado' : 'desligado']
+    ], 'stat');
+    if (!u) { aiSetupHelp(); return; }
+    if (!needNet()) return;
+    var el = say('dim', 'testando o servidor…');
+    var ctl = window.AbortController ? new AbortController() : null, tm = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
+    fetch(u + '/health', { cache: 'no-store', credentials: 'omit', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        clearTimeout(tm); el.remove();
+        if (!d || !d.ok) throw new Error('x');
+        grid([
+          ['resposta', 'servidor no ar'],
+          ['chave do Gemini no servidor', d.configured && d.configured.key ? 'configurada' : 'FALTA configurar'],
+          ['chave de acesso no servidor', d.configured && d.configured.token ? 'configurada' : 'FALTA configurar'],
+          ['modelo', String(d.model || '?')]
+        ], 'stat');
+      })
+      .catch(function () { clearTimeout(tm); el.className = 'ln err'; el.textContent = 'não consegui falar com o servidor. confira o endereço, a internet e se o site está em ALLOWED_ORIGINS.'; });
+  }
+  function aiModels() {
+    if (!aiReady() || !needNet()) return;
+    var el = say('dim', 'consultando modelos disponíveis…');
+    fetch(aiUrl() + '/modelos', { headers: { 'x-emrys-token': aiCfg.token }, cache: 'no-store', credentials: 'omit' })
+      .then(function (r) { return r.json().then(function (d) { return { r: r, d: d }; }); })
+      .then(function (x) {
+        el.remove();
+        if (!x.r.ok) { say('err', (x.d && x.d.error && x.d.error.message) || 'não consegui listar os modelos.'); return; }
+        say('res', '↳ modelo em uso: ' + x.d.atual);
+        say('', x.d.models.slice(0, 30).join('\n'));
+        say('dim', 'para trocar, mude a variável GEMINI_MODEL no painel da Cloudflare.');
+      })
+      .catch(function () { el.className = 'ln err'; el.textContent = 'não consegui falar com o servidor.'; });
+  }
+  function cmdVoltar() {
+    if (!aiMode) { say('dim', 'você já está no modo de pensamentos.'); return; }
+    setAiMode(false);
+    say('ok', 'de volta aos pensamentos. o que você escrever volta a ser guardado.');
+  }
+  function cmdParar() {
+    if (!aiBusy) { say('dim', 'nada em andamento.'); return; }
+    aiBusy.cancel = true; if (aiBusy.ctl) aiBusy.ctl.abort();
+  }
+  function cmdNova() {
+    aiStore.cur = null; aiSaveChats(); aiAnswer = '';
+    setAiMode(true);
+    say('ok', '● nova conversa. a anterior ficou guardada em /conversas.');
+    if (!aiUrl() || !aiCfg.token) aiSetupHelp();
+  }
+  function cmdConversas(arg) {
+    var a = norm(arg.trim()), m;
+    if ((m = /^apagar\s+(\S+)$/.exec(a))) {
+      if (m[1] === 'tudo') { aiStore.chats = []; aiStore.cur = null; aiSaveChats(); say('ok', 'histórico de conversas apagado.'); return; }
+      var k = +m[1] - 1, c = aiStore.chats[k];
+      if (!c) { say('err', 'não achei essa conversa.'); return; }
+      aiStore.chats.splice(k, 1); if (aiStore.cur === c.id) aiStore.cur = null; aiSaveChats();
+      say('ok', 'conversa apagada: ' + c.t); return;
+    }
+    if (/^\d+$/.test(a)) {
+      var ch = aiStore.chats[+a - 1];
+      if (!ch) { say('err', 'não achei essa conversa. /conversas mostra a lista.'); return; }
+      aiStore.cur = ch.id; aiSaveChats(); setAiMode(true);
+      say('res', '↳ conversa: ' + ch.t + ' · ' + fmt(ch.ts));
+      ch.msgs.forEach(function (x) { if (x.r === 'u') { var e = ln('echo'); var p = document.createElement('span'); p.className = 'p'; p.textContent = 'você'; e.append(p, document.createTextNode(x.t)); add(e); } else { aiShow(x.t); aiAnswer = x.t; } });
+      say('dim', 'pode continuar essa conversa. /nova começa outra.');
+      return;
+    }
+    if (!aiStore.chats.length) { say('dim', 'nenhuma conversa ainda. /ia liga o assistente.'); return; }
+    say('res', '↳ ' + aiStore.chats.length + (aiStore.chats.length === 1 ? ' conversa' : ' conversas'));
+    grid(aiStore.chats.map(function (c, i) {
+      return [(i + 1) + (c.id === aiStore.cur ? ' ●' : ''), c.t + ' · ' + fmt(c.ts) + ' · ' + c.msgs.length + ' msgs'];
+    }), 'help');
+    say('dim', '/conversas <nº> abre · /conversas apagar <nº|tudo> remove');
+  }
+  function cmdGuardar() {
+    if (!aiAnswer) { say('dim', 'ainda não há resposta da IA para guardar.'); return; }
+    saveThought(aiClean(aiAnswer));
+  }
+
   var CMDS = [
     { n: 'ajuda', al: ['help', '?'], u: '/ajuda', d: 'mostra esta lista', run: cmdAjuda },
     { n: 'listar', al: ['ls', 'l'], u: '/listar [n|tudo]', d: 'últimos pensamentos, 10 por padrão', run: cmdListar },
@@ -1125,6 +1570,20 @@ body {
     { n: 'apagar', al: ['rm'], u: '/apagar <nº|tudo>', d: 'remove um pensamento', run: cmdApagar },
     { n: 'desfazer', al: ['undo'], u: '/desfazer', d: 'recupera o último apagado', run: cmdDesfazer },
     { n: 'stats', al: ['info'], u: '/stats', d: 'números e sequência de dias', run: cmdStats },
+    { n: 'rede', al: ['net', 'network'], u: '/rede', d: 'resumo: conexão, IP público e latência', run: cmdRede },
+    { n: 'ip', al: [], u: '/ip', d: 'seu IP público e local aproximado', run: cmdIp },
+    { n: 'ping', al: ['latencia'], u: '/ping [site]', d: 'testa a latência até um site', run: cmdPing },
+    { n: 'site', al: ['up', 'online'], u: '/site <endereço...>', d: 'verifica se sites estão no ar', run: cmdSite },
+    { n: 'ia', al: ['ai', 'assistente'], u: '/ia [pergunta]', d: 'liga o assistente de IA (config: /ia status)', run: cmdIa },
+    { n: 'resumir', al: ['resumo'], u: '/resumir <texto|nº>', d: 'a IA resume um texto ou pensamento', run: cmdResumir },
+    { n: 'corrigir', al: ['revisar'], u: '/corrigir <texto|nº>', d: 'a IA corrige ortografia e gramática', run: cmdCorrigir },
+    { n: 'ideias', al: ['ideia'], u: '/ideias <tema>', d: 'a IA sugere ideias', run: cmdIdeias },
+    { n: 'diario', al: ['diário'], u: '/diario [hoje|semana|mes|tudo]', d: 'a IA organiza e resume seu diário', run: cmdDiario },
+    { n: 'nova', al: ['novo', 'new'], u: '/nova', d: 'começa uma nova conversa com a IA', run: cmdNova },
+    { n: 'conversas', al: ['chats', 'historico'], u: '/conversas [nº|apagar nº]', d: 'histórico de conversas com a IA', run: cmdConversas },
+    { n: 'guardar', al: ['gravar'], u: '/guardar', d: 'salva a última resposta da IA como pensamento', run: cmdGuardar },
+    { n: 'parar', al: ['cancelar'], u: '/parar', d: 'cancela a resposta em andamento', run: cmdParar },
+    { n: 'voltar', al: ['mente', 'pensar'], u: '/voltar', d: 'sai do assistente e volta aos pensamentos', run: cmdVoltar },
     { n: 'config', al: ['configurar', 'cfg', 'ajustes'], u: '/config', d: 'cor e tamanho da fonte', run: cmdConfig },
     { n: 'backup', al: ['salvar'], u: '/backup', d: 'gera uma cópia completa para guardar', run: cmdBackup },
     { n: 'restaurar', al: ['importar', 'restore'], u: '/restaurar', d: 'volta pensamentos de uma cópia', run: cmdRestaurar },
@@ -1149,7 +1608,7 @@ body {
   function run(v) {
     hist.push(v); hi = hist.length;
     var e = ln('echo');
-    var pr = document.createElement('span'); pr.className = 'p'; pr.textContent = 'mente:~$';
+    var pr = document.createElement('span'); pr.className = 'p'; pr.textContent = aiMode ? 'ia:~$' : 'mente:~$';
     e.append(pr, document.createTextNode(v));
     add(e);
     var isCmd = v.charAt(0) === '/' && v.charAt(1) !== '/';
@@ -1159,7 +1618,11 @@ body {
       if (m) { name = norm(m[1]); arg = m[2]; }
     }
     if (wipe && name !== 'confirmar') { wipe = false; say('dim', 'apagar tudo cancelado.'); }
-    if (!isCmd) { saveThought(v.charAt(0) === '/' ? v.slice(1) : v); return; }
+    if (!isCmd) {
+      var plain = v.charAt(0) === '/' ? v.slice(1) : v;
+      if (aiMode) askAI(plain); else saveThought(plain);
+      return;
+    }
     if (!name) { say('err', 'digite um comando depois da barra. /ajuda mostra a lista.'); return; }
     var c = null;
     for (var i = 0; i < CMDS.length; i++) {
@@ -1273,33 +1736,27 @@ body {
 
   /* ---------- login ---------- */
   var ART = [
-    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠛⠛⠻⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠋⢁⣤⣴⣶⣶⣦⣤⣀⠈⠙⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⣰⣿⣿⣿⣿⣿⣿⣿⣿⡗⢦⣀⠈⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠛⢧⣄⠈⠙⠿⠋⡀⠻⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠀⠉⠳⣦⡠⠊⠐⡀⢹⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⡇⢀⣿⣿⡿⠿⠿⣿⣿⣿⣿⡿⠿⠿⣿⣿⡀⢠⡀⠈⠀⣠⣷⡀⠀⠹⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⡿⠀⢀⣤⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣤⡀⠀⢿⣷⣾⣿⣿⣿⣦⣤⣬⣽',
-    '⣿⣿⣿⣿⣿⣿⣿⠃⢠⣿⠿⠿⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠻⠿⣿⡄⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⠿⠛⠉⠁⣀⣀⣤⣶⣶⣶⣿⣿⣿⣿⣿⣿⣿⣿⣶⣶⣶⣤⣄⣀⠈⠉⠛⠿⣿⣿⣿⣿⣿',
-    '⠿⠛⠉⢀⣠⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣄⡀⠉⠛⠿',
-    '⠠⠴⠟⠛⠻⠿⠿⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⠿⠿⠛⠛⠦⠄',
-    '⠀⠀⠀⢠⣶⣶⠀⣠⡀⠀⠈⣩⣭⣭⡉⠉⠉⠉⠉⠉⠉⣉⣭⣭⣉⠀⠀⢀⣄⠀⣶⣶⡄⠀⠀⠀⠀',
-    '⠀⢈⣐⣶⣿⡏⢀⣿⣧⢸⣿⠦⠀⠉⠙⠛⠓⣀⣄⠚⠛⠛⠉⠀⠰⣿⡇⣼⣿⡄⢹⣿⣶⣂⡁⠀⠀',
-    '⠢⠄⣀⣙⡛⢀⣾⢋⠉⢸⣿⣷⣤⣍⠛⠀⠀⣿⣿⠀⠀⠛⢁⣤⣾⣿⡇⠘⡟⣷⡀⢛⣋⣀⡠⠔⠚',
-    '⣤⣀⡀⠉⢁⣼⠁⣾⠀⢿⣿⣿⣿⣶⣶⠶⢀⣿⣿⡄⠶⣶⣶⣿⣿⣿⣿⠀⣷⠈⣧⡈⠉⢀⣀⣤⣴',
-    '⣿⣿⣿⠃⣾⠃⣼⡟⠀⠘⢿⣿⣿⡟⣠⣦⣸⣿⣿⣏⣰⣦⠹⣿⣿⡿⠃⠀⢹⣷⠘⣷⠈⢿⣿⣿⣿',
-    '⣿⣿⠇⠼⠃⣸⠟⠀⣷⠐⠄⡙⠛⠠⢙⣡⣤⣙⣛⣥⣌⡋⠄⠙⢛⠡⠂⣼⡀⠹⣇⠘⠧⠸⣿⣿⣿',
-    '⣿⣿⣠⠆⢰⡟⢰⠈⢿⣷⣦⣤⣴⣶⣿⣿⡿⠇⠘⢿⣿⣿⣷⣦⣤⣴⣾⣿⠃⣆⢻⣇⠐⣄⣿⣿⣿',
-    '⣿⣿⡟⠀⡿⢡⣿⣆⠈⠛⠿⠿⠿⠟⠛⣉⣤⣶⣶⣦⣉⠛⠻⠿⠿⠿⠛⠁⣰⣿⡌⢻⠀⢹⣿⣿⣿',
-    '⣿⣿⣇⠀⠀⣾⢛⣿⠀⢳⣶⣦⠸⠿⠋⣉⣤⣴⣦⣤⣉⠙⠻⠇⣴⣶⣾⠀⣿⡟⣷⠀⣀⣼⣿⣿⣿',
-    '⣿⣿⣿⣿⠰⠃⣾⡟⣇⠸⣿⣿⣧⣴⣾⣿⣿⣿⣿⣿⣿⣷⣦⣴⣿⣿⠇⣰⠻⣷⠘⠂⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⡀⡀⢿⠀⢸⠀⠙⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠋⠀⡟⠀⠻⢠⠀⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⡀⢰⡀⠀⡆⡀⠛⢻⣿⣿⣿⣿⣿⣿⣿⣿⡟⠋⠀⢠⡀⢀⣆⠀⣾⣿⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣾⣿⣷⣿⣧⡀⠈⠋⢸⣿⣿⣿⣿⡏⠙⠃⣄⣼⣿⣿⣿⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⢠⠀⠻⣿⣿⡟⠀⡀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣄⠉⠋⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
-    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿'
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠋⣡⣤⣶⣶⣤⣄⡈⠙⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⣼⣿⣿⣿⣿⣿⣿⣏⢲⣄⠈⠻⣿⡿⠻⣿⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⣸⣿⣿⣿⣿⣿⣿⣿⣿⣧⠈⠳⢤⣈⠐⠂⠘⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⢰⠿⠿⠿⣿⣿⣿⣿⡿⠿⠿⡆⠀⡀⠁⣠⣦⡀⠙⢿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⣴⣶⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⠀⢻⣿⣿⣿⣿⣶⣶⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⠿⠟⠃⢘⣉⣩⣥⣤⣤⣶⣶⣦⣤⣤⣍⣉⡁⠘⠻⠿⣿⣿⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⠿⠛⢉⣠⣤⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⣦⣄⡉⠛⠿⣿⣿⣿⣿',
+    '⠟⠉⠀⠀⠚⠛⠛⠛⠛⠻⠿⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⠟⠛⠛⠛⠛⠓⠂⠀⠉⠻⣿',
+    '⠀⠄⠀⠀⠀⢀⣿⡟⢰⣦⢠⣄⠒⠲⠦⠤⠀⠀⠤⠴⠖⠒⣠⡄⣰⡆⢹⣿⡀⠀⠀⠀⢠⠀⣼',
+    '⣦⡀⠐⠠⢈⣙⠛⢁⡿⠛⢸⣷⣦⣐⠂⠀⢸⡇⠀⠐⣂⣴⣾⡇⢹⢿⡀⠛⣋⡁⠄⠂⢁⣴⣿',
+    '⣿⣿⣷⣤⣤⣀⢁⡞⣰⡇⢻⣿⣿⣶⠶⠃⣾⣷⡘⠷⣶⣿⣿⡿⠸⣆⢳⡈⢀⣠⣤⣾⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⢃⠞⢠⡟⢀⠈⠻⡿⠏⠾⠒⠿⠿⠓⠷⠘⢿⠟⡁⡀⠻⡆⠳⡘⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣏⡀⢠⡟⡀⢻⣦⣬⣤⣤⣾⣿⡟⠻⣿⣷⣦⣤⣤⣴⡿⢀⢻⡄⢀⣸⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⠁⠞⢱⣷⡈⠛⠿⠿⢟⣛⣥⣶⣶⣬⣙⡻⠿⠿⠛⢡⣾⣆⠳⠈⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣦⠀⡟⣽⡇⢹⣿⣆⢉⣠⣶⣾⣷⣶⣄⡉⣰⣿⡟⢸⣿⢻⠀⣴⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⡀⡀⡏⢰⠈⠟⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠻⠁⠆⠸⢀⢀⣿⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣷⣷⡀⣄⠀⣀⠘⢻⣿⣿⣿⣿⣿⣿⡟⠋⣀⡀⣠⡀⣼⣿⣿⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡌⠁⢻⣿⣿⡿⠉⢀⣤⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⡀⠻⠟⢁⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿',
+    '⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿'
   ];
   function drawArt(el) { el.textContent = ART.join('\n'); }
   drawArt($('g-art'));
@@ -1310,6 +1767,7 @@ body {
   var CODE_SALT = 'pensamentos-recuperacao-v1';
   var CODE_HASH = 'e0e3c7650941cc382c159467c6ff38df1e4dd89a5e831ba309346ad9eab34423';
   var KDF_ITER = 150000;
+  var EXTRA = [{ salt: '33602fa8bcbd3ae51434e35840542e56', hash: 'd9f1aebef3e187fb2e5bc6bf8acdb3a0e7b89e81807b021de7847f3bd0fa20cc' }]; // logins adicionais (só o hash, nunca a senha)
 
   function getOverride() {
     try {
@@ -1328,10 +1786,18 @@ body {
       return crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode(salt), iterations: KDF_ITER }, k, 256);
     }).then(hex);
   }
-  function verifyLogin(u, p) {
+  function verifyOwner(u, p) {
     var o = getOverride();
     if (o) return kdf(u + '|' + p, o.salt).then(function (h) { return h === o.hash; });
     return sha('pensamentos|' + u + '|' + p).then(function (h) { return h === AUTH; });
+  }
+  function verifyLogin(u, p) {
+    return verifyOwner(u, p).then(function (ok) {
+      if (ok) return true;
+      return Promise.all(EXTRA.map(function (x) {
+        return kdf(u + '|' + p, x.salt).then(function (h) { return h === x.hash; });
+      })).then(function (r) { return r.indexOf(true) !== -1; });
+    });
   }
   function verifyCode(c) {
     var norm1 = String(c).trim().replace(/^:+/, '').trim().toLowerCase();
