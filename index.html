@@ -18,10 +18,13 @@ html { background: #14110d; color-scheme: dark; }
 img { max-width: 100%; }
 [hidden] { display: none !important; }
 </style>
+<title>EMRYS</title>
 </head>
 <body>
-<title>EMRYS</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Uncial+Antiqua&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Uncial+Antiqua&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Uncial+Antiqua&display=swap"></noscript>
 <style>
 /* Layout: terminal em tela cheia. Barra de status no topo, histórico rolável no meio, atalhos e linha de comando presos embaixo. */
 :root {
@@ -42,7 +45,7 @@ img { max-width: 100%; }
 
 [hidden] { display: none !important; }
 html, body { height: 100%; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--bg); }
 body {
   margin: 0;
   box-sizing: border-box;
@@ -51,12 +54,12 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   background: var(--bg);
   color: var(--fg);
-  font: var(--fs, 14px)/1.5 var(--mono);
+  font: var(--fs, 14px)/var(--lh, 1.5) var(--mono);
 }
 ::selection { background: var(--sel); }
 .term {
   height: 100%;
-  max-width: 880px;
+  max-width: var(--maxw, 880px);
   margin-inline: auto;
   display: flex;
   flex-direction: column;
@@ -77,6 +80,19 @@ body {
 .blk { color: var(--accent); margin-right: 0.6ch; }
 .clock { font-variant-numeric: tabular-nums; color: var(--fg); }
 
+.outwrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.down {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.6rem;
+  font: inherit;
+  line-height: 1;
+  color: var(--accent);
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  padding: 0.3rem 1ch;
+  cursor: pointer;
+}
 .out {
   flex: 1;
   min-height: 0;
@@ -115,7 +131,7 @@ body {
   padding-block: 0.4rem;
   border-top: 1px dashed var(--line);
 }
-.th .id { grid-row: 1 / 3; color: var(--accent); }
+.th .id { grid-row: 1 / 3; color: var(--accent); cursor: pointer; }
 .th .when { color: var(--dim); font-size: 0.8em; }
 .th .body { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
 .tag {
@@ -141,14 +157,14 @@ body {
 .grid .v { min-width: 0; overflow-wrap: anywhere; }
 .grid.help .v { color: var(--dim); }
 
-.chips {
+.chips, .sugs {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
   padding-block: 0.5rem;
   scrollbar-width: none;
 }
-.chips::-webkit-scrollbar { display: none; }
+.chips::-webkit-scrollbar, .sugs::-webkit-scrollbar { display: none; }
 .chip {
   flex: none;
   font: inherit;
@@ -159,6 +175,7 @@ body {
   padding: 0.2rem 1.2ch;
   cursor: pointer;
 }
+.down:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chip:hover, .chip[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .chip:focus-visible, .send:focus-visible, .tag:focus-visible {
   outline: 2px solid var(--accent);
@@ -204,6 +221,43 @@ body {
 }
 .send:hover { border-color: var(--accent); }
 
+/* v1.12 · visual renovado (mesmo terminal, mais organizado) */
+.echo { background: color-mix(in srgb, var(--accent) 7%, transparent); border-left: 2px solid var(--accent); padding: 0.1rem 1ch; margin-top: 0.35rem; }
+.th { border-top: 0; border-left: 2px solid var(--line); padding: 0.35rem 0 0.35rem 1.2ch; margin-block: 0.1rem; }
+.th:hover { border-left-color: var(--accent); }
+.dayhd { display: flex; align-items: center; gap: 1ch; margin-top: 0.5rem; color: var(--dim); font-size: 0.75em; letter-spacing: 0.12em; text-transform: uppercase; }
+.dayhd::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.chip { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+.line { border: 1px solid var(--line); padding: 0.55rem 1.2ch; margin-block: 0.4rem 0.6rem; }
+.line:focus-within { border-color: var(--accent); }
+.send { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+.send:hover { filter: brightness(1.1); }
+.bar > * { white-space: nowrap; }
+.keys { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hstat { display: none; font-variant-numeric: tabular-nums; color: var(--dim); }
+@media (min-width: 600px) { .hstat { display: inline; margin-inline: auto 1rem; } }
+
+/* v1.13 · painel de configurações com seções e ícones */
+.ico { display: inline-flex; width: 1.15em; height: 1.15em; flex: none; }
+.ico svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square; stroke-linejoin: miter; }
+.cfg.cp { gap: 0.7rem; }
+.cphead { display: flex; align-items: center; gap: 1ch; color: var(--accent); font-size: 0.8em; letter-spacing: 0.14em; text-transform: uppercase; }
+.cfg details.sec { border: 1px solid var(--line); }
+.cfg details.sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 1ch; padding: 0.55rem 1.2ch; color: var(--accent); font-size: 0.78em; letter-spacing: 0.12em; text-transform: uppercase; background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.cfg details.sec > summary::-webkit-details-marker { display: none; }
+.cfg details.sec > summary::after { content: '▾'; margin-left: auto; color: var(--dim); }
+.cfg details.sec:not([open]) > summary::after { content: '▸'; }
+.cfg details.sec > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cfg .secbody { display: grid; gap: 0.95rem; padding: 0.85rem 1.2ch; }
+.cfg.cp .row { grid-template-columns: minmax(13ch, 16ch) minmax(0, 1fr); }
+.cfg .lab { display: flex; align-items: center; gap: 0.8ch; }
+.cfg .opt[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+.cfg .opt .dot { border-color: currentColor; }
+.cfg .opt svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.cfg .acts { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+@media (max-width: 480px) { .cfg.cp .row { grid-template-columns: 1fr; } }
+
 .cfg {
   display: grid;
   gap: 0.9rem;
@@ -213,7 +267,7 @@ body {
 }
 .cfg .row {
   display: grid;
-  grid-template-columns: 9ch minmax(0, 1fr);
+  grid-template-columns: 12ch minmax(0, 1fr);
   gap: 0.4rem 2ch;
   align-items: center;
 }
@@ -327,18 +381,16 @@ body {
 
 .keys { display: none; }
 .out > .art { flex: none; }
-.ai { border-left: 2px solid var(--accent); padding-left: 1.5ch; user-select: text; color: var(--fg); }
 @media (min-width: 900px) and (hover: hover) {
   .art, .gate .hero .art { font-size: 12px; }
-  .term { max-width: 1080px; }
+  .term { max-width: var(--maxw, 1080px); }
   .bar { padding-block: 1rem 0.8rem; }
   .keys { display: inline; margin-inline: auto 2rem; opacity: .7; letter-spacing: .04em; text-transform: none; }
   .out { padding-block: 1.25rem 0.75rem; padding-inline: 0.25rem; gap: .35rem; }
-  .th { padding-inline: .6ch; border-radius: 3px; transition: background .12s; }
+  .th { border-radius: 0 3px 3px 0; transition: background .12s; }
   .th:hover { background: rgba(255,176,0,.06); }
   .chip { cursor: pointer; transition: border-color .12s, color .12s; }
   .chip:hover { border-color: var(--accent); color: var(--accent); }
-  .line { padding-bottom: 1.25rem; }
   .out::-webkit-scrollbar { width: 8px; }
   .out::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
   .out::-webkit-scrollbar-thumb:hover { background: var(--dim); }
@@ -435,10 +487,15 @@ body {
 <div class="term" hidden>
   <header class="bar">
     <span><span class="mark sm" role="img" aria-label="Logo"></span>EMRYS · <span id="mode">iniciando</span></span>
+    <span id="stat" class="hstat" aria-hidden="true"></span>
     <span class="keys" aria-hidden="true">enter guarda · shift+enter nova linha · ↑ histórico · ctrl+L limpa · ctrl+K foca</span>
     <time id="clock" class="clock">--:--</time>
   </header>
-  <main id="out" class="out" role="log" aria-live="polite" aria-label="Histórico do terminal"></main>
+  <div class="outwrap">
+    <main id="out" class="out" role="log" aria-live="polite" aria-label="Histórico do terminal"></main>
+    <button type="button" id="down" class="down" aria-label="Ir para o fim" hidden>↓</button>
+  </div>
+  <nav id="sug" class="sugs" aria-label="Sugestões de comando" hidden></nav>
   <nav class="chips" aria-label="Atalhos">
     <button type="button" class="chip" data-cmd="ajuda">/ajuda</button>
     <button type="button" class="chip" data-cmd="listar">/listar</button>
@@ -499,7 +556,7 @@ body {
 (function () {
   'use strict';
   var KEY = 'pensamentos.v2';
-  var VERSION = '1.9.1', BUILD = '2026-11-05';
+  var VERSION = '1.13.0', BUILD = '2026-11-07';
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out'), f = $('f'), inp = $('in'), modeEl = $('mode'), clock = $('clock');
   var MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -536,6 +593,7 @@ body {
     var d = Math.floor(h / 24);
     return 'há ' + d + (d === 1 ? ' dia' : ' dias');
   }
+  function when(ts) { return cfg.date === 'relativa' && Date.now() - ts < 7 * 86400000 ? ago(ts) : fmt(ts); }
   function dayKey(ts) { var d = new Date(ts); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   function tagsOf(text) {
     var seen = {}, res = [], re = /#([\p{L}\p{N}_]+)/gu, m;
@@ -544,7 +602,30 @@ body {
   }
 
   /* ---------- saída ---------- */
-  function add(el) { out.appendChild(el); out.scrollTop = out.scrollHeight; return el; }
+  var scrollQ = 0;
+  function scrollSoon() {
+    if (scrollQ) return;
+    scrollQ = requestAnimationFrame(function () { scrollQ = 0; out.scrollTop = out.scrollHeight; });
+  }
+  var statN = -1, statEl = $('stat');
+  function syncStat() {
+    statN = items.length;
+    if (!statEl) return;
+    var k = dayKey(Date.now()), hoje = items.filter(function (x) { return dayKey(x.ts) === k; }).length;
+    statEl.textContent = items.length ? items.length + (items.length === 1 ? ' pensamento' : ' pensamentos') + ' · hoje ' + hoje : 'sem pensamentos ainda';
+  }
+  function add(el) { out.appendChild(el); if (statN !== items.length) syncStat(); scrollSoon(); return el; }
+  function prune() {
+    var n = out.children.length;
+    if (n > 1200) { var k = n - 900; while (k-- > 0 && out.firstChild) out.removeChild(out.firstChild); }
+  }
+  var downBtn = $('down'), downQ = 0;
+  function syncDown() {
+    downQ = 0;
+    downBtn.hidden = out.scrollHeight - out.scrollTop - out.clientHeight < 120;
+  }
+  out.addEventListener('scroll', function () { if (!downQ) downQ = requestAnimationFrame(syncDown); }, { passive: true });
+  downBtn.addEventListener('click', function () { out.scrollTop = out.scrollHeight; syncDown(); });
   function ln(cls, text) {
     var d = document.createElement('div');
     d.className = 'ln' + (cls ? ' ' + cls : '');
@@ -569,10 +650,10 @@ body {
     return b;
   }
   function thEl(it) {
-    var d = document.createElement('div'); d.className = 'th';
+    var d = document.createElement('div'); d.className = 'th'; d.dataset.n = it.n;
     var id = document.createElement('span'); id.className = 'id'; id.textContent = '#' + it.n;
     var w = document.createElement('span'); w.className = 'when';
-    w.textContent = fmt(it.ts) + (it.ed ? ' · editado' : '');
+    w.textContent = when(it.ts) + (it.ed ? ' · editado' : '');
     var body = document.createElement('span'); body.className = 'body';
     it.t.split(/(#[\p{L}\p{N}_]+)/u).forEach(function (part, i) {
       if (i % 2) {
@@ -585,7 +666,20 @@ body {
   function showThoughts(list, header) {
     if (!list.length) { say('res', '↳ nada por aqui.'); return; }
     say('res', '↳ ' + header);
-    list.forEach(function (it) { add(thEl(it)); });
+    var fr = document.createDocumentFragment(), last = '', days = {};
+    list.forEach(function (it) { days[dayKey(it.ts)] = 1; });
+    var multi = Object.keys(days).length > 1, hk = dayKey(Date.now()), yk = dayKey(Date.now() - 86400000);
+    list.forEach(function (it) {
+      var dk = dayKey(it.ts);
+      if (multi && dk !== last) {
+        last = dk;
+        var hd = document.createElement('div'); hd.className = 'dayhd';
+        hd.textContent = dk === hk ? 'hoje' : dk === yk ? 'ontem' : fmt(it.ts).slice(0, fmt(it.ts).length - 6);
+        fr.appendChild(hd);
+      }
+      fr.appendChild(thEl(it));
+    });
+    add(fr);
   }
 
   /* ---------- armazenamento ---------- */
@@ -661,24 +755,67 @@ body {
   /* ---------- configurações ---------- */
   var CFG_KEY = 'pensamentos.cfg.v2';
   var DEF_SIZE = (window.matchMedia && matchMedia('(min-width: 900px) and (pointer: fine)').matches) ? 16 : 14;
-  var cfg = { color: '', size: DEF_SIZE, lock: 5 };
+  var CFG_DEF = { color: '', size: DEF_SIZE, lock: 5, font: 'plex', lh: 'normal', width: 'normal', bg: 'padrao', chips: true, sug: true, clock: true, keys: true, n: 10, date: 'cheia', enter: 'envia' };
+  var cfg = {};
   var SWATCHES = [['âmbar', '#ffb000'], ['verde', '#33ff66'], ['ciano', '#4dd8e8'], ['rosa', '#ff7ac6'], ['branco', '#f2f2f2'], ['padrão', '']];
+  var FONTS = {
+    plex: "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace",
+    sistema: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+    classica: "'Courier New', Courier, monospace"
+  };
+  var LHS = { compacto: 1.35, normal: 1.5, amplo: 1.75 };
+  var WIDTHS = { estreita: '640px', normal: '', larga: '1280px', total: 'none' };
+  var BGS = { padrao: '#14110d', preto: '#000000', carvao: '#1c1b19', noite: '#0f1318' };
+  var YN = function (a, b) { return [[true, a], [false, b]]; };
+  var CFG_UI = [
+    ['sec', 'aparência'],
+    ['color'],
+    ['size'],
+    ['choice', 'fonte', 'font', [['plex', 'Plex Mono'], ['sistema', 'sistema'], ['classica', 'clássica']]],
+    ['choice', 'espaçamento', 'lh', [['compacto', 'compacto'], ['normal', 'normal'], ['amplo', 'amplo']], 'altura das linhas.'],
+    ['choice', 'largura', 'width', [['estreita', 'estreita'], ['normal', 'normal'], ['larga', 'larga'], ['total', 'total']], 'só muda em telas largas.'],
+    ['choice', 'fundo', 'bg', [['padrao', 'padrão'], ['preto', 'preto'], ['carvao', 'carvão'], ['noite', 'noite']], 'tudo continua escuro. "preto" economiza bateria em telas OLED.'],
+    ['sec', 'interface'],
+    ['choice', 'atalhos', 'chips', YN('mostrar', 'ocultar'), 'a barra com /ajuda, /listar, /hoje…'],
+    ['choice', 'sugestões', 'sug', YN('ligadas', 'desligadas'), 'ao digitar /, mostra os comandos para tocar. Tab completa no computador.'],
+    ['choice', 'relógio', 'clock', YN('mostrar', 'ocultar')],
+    ['choice', 'teclas', 'keys', YN('mostrar', 'ocultar'), 'a linha de teclas de atalho no topo (só em telas largas).'],
+    ['sec', 'leitura e escrita'],
+    ['choice', 'listar', 'n', [[5, '5'], [10, '10'], [20, '20'], [50, '50']], 'quantos pensamentos o /listar mostra.'],
+    ['choice', 'datas', 'date', [['cheia', '07 nov 08:30'], ['relativa', 'há 2 h']]],
+    ['choice', 'enter', 'enter', [['envia', 'envia'], ['quebra', 'quebra linha']], 'com "quebra linha", envie pelo botão ↵ ou com Ctrl+Enter.'],
+    ['sec', 'segurança'],
+    ['lock']
+  ];
+  var CFG_ALIAS = { fonte: 'font', espacamento: 'lh', largura: 'width', fundo: 'bg', atalhos: 'chips', sugestoes: 'sug', relogio: 'clock', teclas: 'keys', dicas: 'keys', listar: 'n', lista: 'n', data: 'date', datas: 'date', enter: 'enter' };
+  var chipsEl = document.querySelector('.chips'), sugEl = $('sug'), keysEl = document.querySelector('.keys'), sugOn = false;
+  function cfgReset() { for (var k in CFG_DEF) cfg[k] = CFG_DEF[k]; }
   function loadCfg() {
+    cfgReset();
     try {
       var r = localStorage.getItem(CFG_KEY);
-      if (r) {
-        var d = JSON.parse(r);
-        if (d && typeof d === 'object') {
-          if (/^#[0-9a-f]{6}$/i.test(d.color)) cfg.color = d.color;
-          var s = +d.size;
-          if (s >= 10 && s <= 28) cfg.size = Math.round(s);
-          var lk = +d.lock;
-          if (isFinite(lk) && lk >= 0 && lk <= 120 && d.lock !== null && d.lock !== '') cfg.lock = Math.round(lk);
-        }
-      }
+      if (!r) return;
+      var d = JSON.parse(r);
+      if (!d || typeof d !== 'object') return;
+      if (/^#[0-9a-f]{6}$/i.test(d.color)) cfg.color = d.color;
+      var s = +d.size;
+      if (s >= 10 && s <= 28) cfg.size = Math.round(s);
+      var lk = +d.lock;
+      if (isFinite(lk) && lk >= 0 && lk <= 120 && d.lock !== null && d.lock !== '') cfg.lock = Math.round(lk);
+      CFG_UI.forEach(function (u) {
+        if (u[0] !== 'choice') return;
+        var key = u[2], v = d[key];
+        if (key === 'n') { if (isFinite(+v) && +v >= 1 && +v <= 200 && v !== null && v !== '') cfg.n = Math.round(+v); }
+        else if (typeof CFG_DEF[key] === 'boolean') { if (typeof v === 'boolean') cfg[key] = v; }
+        else if (u[3].some(function (c) { return c[0] === v; })) cfg[key] = v;
+      });
     } catch (e) {}
   }
   function saveCfg() { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {} }
+  function showBars() {
+    if (chipsEl) chipsEl.hidden = !cfg.chips || sugOn;
+    if (sugEl) sugEl.hidden = !sugOn;
+  }
   function applyCfg() {
     var st = document.documentElement.style;
     st.setProperty('--fs', cfg.size + 'px');
@@ -689,103 +826,187 @@ body {
     } else {
       ['--fg', '--accent', '--dim'].forEach(function (k) { st.removeProperty(k); });
     }
+    st.setProperty('--mono', FONTS[cfg.font]);
+    st.setProperty('--lh', LHS[cfg.lh]);
+    if (WIDTHS[cfg.width]) st.setProperty('--maxw', WIDTHS[cfg.width]); else st.removeProperty('--maxw');
+    st.setProperty('--bg', BGS[cfg.bg]);
+    var tc = document.querySelector('meta[name="theme-color"]');
+    if (tc) tc.setAttribute('content', BGS[cfg.bg]);
+    clock.hidden = !cfg.clock;
+    if (keysEl) keysEl.hidden = !cfg.keys;
+    inp.setAttribute('enterkeyhint', cfg.enter === 'envia' ? 'send' : 'enter');
+    showBars();
     if (typeof grow === 'function') grow();
   }
   loadCfg();
   applyCfg();
 
+  var SVG = function (d) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + d + '</svg>'; };
+  var ICONS = {
+    color: SVG('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>'),
+    size: SVG('<path d="M3 19 8 6l5 13M5 15h6M15 19l3.5-8 3.5 8M16.3 16.5h4.4"/>'),
+    font: SVG('<path d="M4 7V5h16v2M12 5v14M9 19h6"/>'),
+    lh: SVG('<path d="M4 5h16M4 12h16M4 19h16"/>'),
+    width: SVG('<path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/>'),
+    bg: SVG('<rect x="3" y="3" width="18" height="18"/><path d="M3 3h18v18z" fill="currentColor"/>'),
+    chips: SVG('<rect x="3" y="8" width="7" height="8"/><rect x="14" y="8" width="7" height="8"/>'),
+    sug: SVG('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 17v4M17 19h4"/>'),
+    clock: SVG('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+    keys: SVG('<rect x="2" y="6" width="20" height="12"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>'),
+    n: SVG('<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'),
+    date: SVG('<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+    enter: SVG('<path d="M20 5v7a2 2 0 0 1-2 2H5M9 10l-4 4 4 4"/>'),
+    lock: SVG('<rect x="5" y="11" width="14" height="10"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+    s_aparencia: SVG('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>'),
+    s_interface: SVG('<rect x="3" y="4" width="18" height="16"/><path d="M3 9h18"/>'),
+    s_leitura: SVG('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),
+    s_seguranca: SVG('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>'),
+    reset: SVG('<path d="M4 12a8 8 0 1 0 3-6.2M4 4v5h5"/>'),
+    ver: SVG('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+    gear: SVG('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>')
+  };
+  var SEC_ICON = { 'aparência': 's_aparencia', 'interface': 's_interface', 'leitura e escrita': 's_leitura', 'segurança': 's_seguranca' };
+  function ico(name) { var s = document.createElement('span'); s.className = 'ico'; s.innerHTML = ICONS[name] || ''; return s; }
+  function icoBtn(name, label, fn) { var b = mkBtn('', fn); b.appendChild(ico(name)); b.appendChild(document.createTextNode(label)); return b; }
+
   function cfgPanel() {
     var old = out.querySelectorAll('.cfg');
     for (var i = 0; i < old.length; i++) old[i].remove();
-    var box = document.createElement('div'); box.className = 'cfg';
+    var box = document.createElement('div'); box.className = 'cfg cp';
+    var head = document.createElement('div'); head.className = 'cphead';
+    head.append(ico('gear'), document.createTextNode('configurações'));
+    box.appendChild(head);
+    box.appendChild(mkNote('as mudanças valem na hora e ficam guardadas neste aparelho.'));
+    var body = box;
 
-    function row(label, forId) {
+    function row(label, forId, icon) {
       var r = document.createElement('div'); r.className = 'row';
-      var l = document.createElement(forId ? 'label' : 'span'); l.className = 'lab'; l.textContent = label;
+      var l = document.createElement(forId ? 'label' : 'span'); l.className = 'lab';
+      if (icon) l.appendChild(ico(icon));
+      l.appendChild(document.createTextNode(label));
       if (forId) l.htmlFor = forId;
       var c = document.createElement('div'); c.className = 'ctl';
-      r.append(l, c); box.appendChild(r);
+      r.append(l, c); body.appendChild(r);
       return c;
     }
+    function note(c, t) { var n = mkNote(t); n.style.flexBasis = '100%'; c.appendChild(n); }
+    var refresh = [];
+    function change() { applyCfg(); saveCfg(); }
 
-    var cc = row('cor da fonte', 'cfg-color');
-    var btns = [];
-    var picker = document.createElement('input');
-    picker.type = 'color'; picker.id = 'cfg-color';
-    picker.value = cfg.color || '#ffb000';
-    function mark() {
-      btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.c === cfg.color)); });
-    }
-    SWATCHES.forEach(function (s) {
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'opt'; b.dataset.c = s[1];
-      var dot = document.createElement('span'); dot.className = 'dot';
-      if (s[1]) dot.style.background = s[1];
-      b.append(dot, document.createTextNode(s[0]));
-      b.addEventListener('click', function () {
-        cfg.color = s[1]; if (s[1]) picker.value = s[1];
-        applyCfg(); saveCfg(); mark();
-      });
-      btns.push(b); cc.appendChild(b);
+    CFG_UI.forEach(function (u) {
+      if (u[0] === 'sec') {
+        var d = document.createElement('details'); d.className = 'sec'; d.open = true;
+        var sm = document.createElement('summary'); sm.append(ico(SEC_ICON[u[1]]), document.createTextNode(u[1]));
+        body = document.createElement('div'); body.className = 'secbody';
+        d.append(sm, body); box.appendChild(d);
+      } else if (u[0] === 'choice') {
+        var key = u[2], c = row(u[1], null, key), bs = [];
+        var mark = function () { bs.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === String(cfg[key]))); }); };
+        u[3].forEach(function (ch) {
+          var b = mkBtn(ch[1], function () { cfg[key] = ch[0]; change(); mark(); });
+          b.dataset.v = String(ch[0]); bs.push(b); c.appendChild(b);
+        });
+        mark(); refresh.push(mark);
+        if (u[4]) note(c, u[4]);
+      } else if (u[0] === 'color') {
+        var cc = row('cor da fonte', 'cfg-color', 'color'), btns = [];
+        var picker = document.createElement('input');
+        picker.type = 'color'; picker.id = 'cfg-color'; picker.value = cfg.color || '#ffb000';
+        var cmark = function () { btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.c === cfg.color)); }); };
+        SWATCHES.forEach(function (s) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'opt'; b.dataset.c = s[1];
+          var dot = document.createElement('span'); dot.className = 'dot';
+          if (s[1]) dot.style.background = s[1];
+          b.append(dot, document.createTextNode(s[0]));
+          b.addEventListener('click', function () { cfg.color = s[1]; if (s[1]) picker.value = s[1]; change(); cmark(); });
+          btns.push(b); cc.appendChild(b);
+        });
+        picker.addEventListener('input', function () { cfg.color = picker.value; change(); cmark(); });
+        cc.appendChild(picker); cmark();
+        refresh.push(function () { cmark(); picker.value = cfg.color || '#ffb000'; });
+      } else if (u[0] === 'size') {
+        var sc = row('tamanho', 'cfg-size', 'size');
+        var range = document.createElement('input');
+        range.type = 'range'; range.id = 'cfg-size'; range.min = 10; range.max = 28; range.step = 1; range.value = cfg.size;
+        var val = document.createElement('span'); val.className = 'val'; val.textContent = cfg.size + ' px';
+        range.addEventListener('input', function () {
+          cfg.size = +range.value; val.textContent = cfg.size + ' px';
+          change();
+        });
+        sc.append(range, val);
+        refresh.push(function () { range.value = cfg.size; val.textContent = cfg.size + ' px'; });
+      } else if (u[0] === 'lock') {
+        var lc = row('trancar', null, 'lock'), lockBtns = [];
+        var markLock = function () { lockBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.m === cfg.lock)); }); };
+        [[0, 'nunca'], [1, '1 min'], [5, '5 min'], [15, '15 min'], [30, '30 min']].forEach(function (o) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'opt'; b.dataset.m = o[0]; b.textContent = o[1];
+          b.addEventListener('click', function () { cfg.lock = o[0]; lastAct = Date.now(); saveCfg(); markLock(); });
+          lockBtns.push(b); lc.appendChild(b);
+        });
+        note(lc, 'pede o login de novo depois desse tempo parado ou fora do app.');
+        markLock(); refresh.push(markLock);
+      }
     });
-    picker.addEventListener('input', function () {
-      cfg.color = picker.value; applyCfg(); saveCfg(); mark();
-    });
-    cc.appendChild(picker);
-    mark();
 
-    var sc = row('tamanho', 'cfg-size');
-    var range = document.createElement('input');
-    range.type = 'range'; range.id = 'cfg-size'; range.min = 10; range.max = 28; range.step = 1; range.value = cfg.size;
-    var val = document.createElement('span'); val.className = 'val'; val.textContent = cfg.size + ' px';
-    range.addEventListener('input', function () {
-      cfg.size = +range.value; val.textContent = cfg.size + ' px';
-      applyCfg(); saveCfg(); out.scrollTop = out.scrollHeight;
-    });
-    sc.append(range, val);
-
-    var lc = row('trancar');
-    var lockBtns = [];
-    function markLock() { lockBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.m === cfg.lock)); }); }
-    [[0, 'nunca'], [1, '1 min'], [5, '5 min'], [15, '15 min'], [30, '30 min']].forEach(function (o) {
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'opt'; b.dataset.m = o[0]; b.textContent = o[1];
-      b.addEventListener('click', function () { cfg.lock = o[0]; lastAct = Date.now(); saveCfg(); markLock(); });
-      lockBtns.push(b); lc.appendChild(b);
-    });
-    var ln2 = mkNote('pede o login de novo depois desse tempo parado ou fora do app.'); ln2.style.flexBasis = '100%';
-    lc.appendChild(ln2);
-    markLock();
-
-    var rc = row('');
-    var rs = document.createElement('button');
-    rs.type = 'button'; rs.className = 'opt'; rs.textContent = 'restaurar padrão';
-    rs.addEventListener('click', function () {
-      cfg.color = ''; cfg.size = DEF_SIZE; cfg.lock = 5;
-      range.value = DEF_SIZE; val.textContent = DEF_SIZE + ' px'; picker.value = '#ffb000';
-      applyCfg(); saveCfg(); mark(); markLock();
-    });
-    rc.appendChild(rs);
+    var acts = document.createElement('div'); acts.className = 'acts';
+    acts.appendChild(icoBtn('reset', 'restaurar padrão', function () { cfgReset(); change(); refresh.forEach(function (fn) { fn(); }); }));
+    acts.appendChild(icoBtn('ver', 'ver valores', function () { cmdConfig('ver'); }));
+    box.appendChild(acts);
 
     var smp = document.createElement('p'); smp.className = 'sample';
     smp.textContent = 'exemplo: assim ficam os seus pensamentos.';
     box.appendChild(smp);
     add(box);
+    requestAnimationFrame(function () { requestAnimationFrame(function () { try { box.scrollIntoView({ block: 'start' }); } catch (e) {} }); });
+  }
+  function cfgSetText(u, v) {
+    var key = u[2], def = CFG_DEF[key];
+    if (key === 'n') {
+      var n = parseInt(v, 10);
+      if (!(n >= 1 && n <= 200)) return 'use um número de 1 a 200.';
+      cfg.n = n; return null;
+    }
+    if (typeof def === 'boolean') {
+      if (/^(sim|s|on|ligar|ligado|ligadas|mostrar|1)$/.test(v)) cfg[key] = true;
+      else if (/^(nao|n|off|desligar|desligado|desligadas|ocultar|esconder|0)$/.test(v)) cfg[key] = false;
+      else return 'use sim ou nao.';
+      return null;
+    }
+    for (var i = 0; i < u[3].length; i++) {
+      var c = u[3][i];
+      if (c[0] === v || norm(c[1]) === v) { cfg[key] = c[0]; return null; }
+    }
+    return 'valores: ' + u[3].map(function (c) { return c[0]; }).join(', ') + '.';
   }
   function cmdConfig(arg) {
     var a = norm(arg.trim());
     if (!a) {
       cfgPanel();
-      say('dim', 'também funciona por texto: /config cor verde · /config cor #33ff66 · /config tamanho 20 · /config reset');
+      say('dim', 'também funciona por texto: /config cor verde · fonte sistema · fundo preto · largura larga · listar 20 · enter quebra · /config ver · /config reset');
       return;
     }
     if (a === 'reset' || a === 'padrao') {
-      cfg.color = ''; cfg.size = DEF_SIZE; cfg.lock = 5; applyCfg(); saveCfg();
+      cfgReset(); applyCfg(); saveCfg();
       say('ok', 'configurações restauradas.');
       return;
     }
-    var m = a.match(/^(cor|tamanho|trancar)\s+(.+)$/);
-    if (!m) { say('err', 'use: /config, /config cor <nome|#hex>, /config tamanho <10-28>, /config trancar <minutos|nunca>'); return; }
+    if (a === 'ver' || a === 'mostrar') {
+      var rows = [['cor', cfg.color || 'padrão'], ['tamanho', cfg.size + ' px']];
+      CFG_UI.forEach(function (u) {
+        if (u[0] !== 'choice') return;
+        var v = cfg[u[2]], lab = String(v);
+        if (typeof v === 'boolean') lab = v ? 'sim' : 'não';
+        else for (var i = 0; i < u[3].length; i++) if (u[3][i][0] === v) lab = u[3][i][1];
+        rows.push([u[1], lab]);
+      });
+      rows.push(['trancar', cfg.lock ? cfg.lock + ' min' : 'nunca']);
+      grid(rows, 'stat');
+      return;
+    }
+    var m = a.match(/^(\S+)\s+(.+)$/);
+    if (!m) { say('err', 'use /config para abrir o painel, ou /config <opção> <valor>. /config ver mostra tudo.'); return; }
     if (m[1] === 'trancar') {
       var mins = (m[2] === 'nunca' || m[2] === '0') ? 0 : parseInt(m[2], 10);
       if (!(mins >= 0 && mins <= 120)) { say('err', 'use um número de 1 a 120, ou nunca.'); return; }
@@ -800,14 +1021,24 @@ body {
       say('ok', 'tamanho da fonte: ' + n + ' px.');
       return;
     }
-    var hex = m[2].match(/^#?([0-9a-f]{6})$/);
-    var found = null;
-    SWATCHES.forEach(function (s) { if (norm(s[0]) === m[2]) found = s; });
-    if (found) cfg.color = found[1];
-    else if (hex) cfg.color = '#' + hex[1];
-    else { say('err', 'cor desconhecida. use ' + SWATCHES.map(function (s) { return s[0]; }).join(', ') + ' ou um código #rrggbb.'); return; }
+    if (m[1] === 'cor') {
+      var hex = m[2].match(/^#?([0-9a-f]{6})$/);
+      var found = null;
+      SWATCHES.forEach(function (s) { if (norm(s[0]) === m[2]) found = s; });
+      if (found) cfg.color = found[1];
+      else if (hex) cfg.color = '#' + hex[1];
+      else { say('err', 'cor desconhecida. use ' + SWATCHES.map(function (s) { return s[0]; }).join(', ') + ' ou um código #rrggbb.'); return; }
+      applyCfg(); saveCfg();
+      say('ok', cfg.color ? 'cor da fonte: ' + cfg.color + '.' : 'cor da fonte restaurada.');
+      return;
+    }
+    var key = CFG_ALIAS[m[1]], u = null;
+    CFG_UI.forEach(function (x) { if (x[0] === 'choice' && x[2] === key) u = x; });
+    if (!u) { say('err', 'opção desconhecida. /config abre o painel e /config ver mostra os valores.'); return; }
+    var er = cfgSetText(u, m[2]);
+    if (er) { say('err', er); return; }
     applyCfg(); saveCfg();
-    say('ok', cfg.color ? 'cor da fonte: ' + cfg.color + '.' : 'cor da fonte restaurada.');
+    say('ok', u[1] + ' atualizado.');
   }
 
   /* ---------- backup e restauração ---------- */
@@ -981,10 +1212,10 @@ body {
     var rows = CMDS.filter(function (c) { return !c.hidden; }).map(function (c) { return [c.u, c.d]; });
     grid(rows, 'help');
     gap();
-    say('dim', 'texto sem barra vira pensamento. Shift+Enter quebra a linha. a seta para cima repete o que você digitou. para começar um pensamento com /, use //.');
+    say('dim', 'texto sem barra vira pensamento. Shift+Enter quebra a linha. a seta para cima repete o que você digitou. para começar um pensamento com /, use //. digite / para ver sugestões de comando; toque no número de um pensamento para editá-lo.');
   }
   function cmdListar(arg) {
-    var a = norm(arg.trim()), n = 10;
+    var a = norm(arg.trim()), n = cfg.n;
     if (a === 'tudo' || a === 'todos') n = Infinity;
     else if (/^\d+$/.test(a)) n = Math.max(1, +a);
     var list = items.slice(-n);
@@ -1232,335 +1463,9 @@ body {
     cmdPing('');
   }
 
-  /* ---------- assistente (IA) ---------- */
-  var AI_KEY = 'pensamentos.ia.v1', AI_CHATS_KEY = 'pensamentos.ia.chats.v1';
-  var AI_URL_DEFAULT = ''; // opcional: endereço do seu servidor da IA, se quiser deixar fixo no arquivo
-  var AI_MAX_CHATS = 30, AI_MAX_MSGS = 60, AI_SEND_MSGS = 20, AI_SEND_CHARS = 24000, AI_MAX_TEXT = 16000;
-  var AI_TIMEOUT = 40000, AI_PER_MIN = 12, AI_GAP = 1500;
-  var aiCfg = { url: '', token: '', ack: false };
-  var aiStore = { cur: null, chats: [] };
-  var aiMode = false, aiBusy = null, aiLast = 0, aiTimes = [], aiAnswer = '', aiModeBase = null, aiPendingDiary = false;
-
-  function aiLoad() {
-    try {
-      var o = JSON.parse(localStorage.getItem(AI_KEY));
-      if (o && typeof o === 'object') { aiCfg.url = String(o.url || ''); aiCfg.token = String(o.token || ''); aiCfg.ack = !!o.ack; }
-    } catch (e) {}
-    try {
-      var c = JSON.parse(localStorage.getItem(AI_CHATS_KEY));
-      if (c && Array.isArray(c.chats)) {
-        aiStore.chats = c.chats.filter(function (x) { return x && x.id && Array.isArray(x.msgs); });
-        aiStore.cur = c.cur || null;
-      }
-    } catch (e) {}
-  }
-  function aiSaveCfg() { try { localStorage.setItem(AI_KEY, JSON.stringify(aiCfg)); } catch (e) {} }
-  function aiSaveChats() {
-    aiStore.chats.sort(function (a, b) { return b.ts - a.ts; });
-    if (aiStore.chats.length > AI_MAX_CHATS) aiStore.chats.length = AI_MAX_CHATS;
-    for (var tries = 0; tries < 6; tries++) {
-      try { localStorage.setItem(AI_CHATS_KEY, JSON.stringify(aiStore)); return; }
-      catch (e) { if (aiStore.chats.length <= 1) return; aiStore.chats.pop(); }
-    }
-  }
-  aiLoad();
-
-  function aiUrl() { return (aiCfg.url || AI_URL_DEFAULT || '').replace(/\/+$/, ''); }
-  function aiChat(create) {
-    var c = null;
-    for (var i = 0; i < aiStore.chats.length; i++) if (aiStore.chats[i].id === aiStore.cur) c = aiStore.chats[i];
-    if (!c && create) { c = { id: newKey(), t: '', ts: Date.now(), msgs: [] }; aiStore.chats.unshift(c); aiStore.cur = c.id; }
-    return c;
-  }
-  function setAiMode(on) {
-    if (on === aiMode) return;
-    aiMode = on;
-    var lab = document.querySelector('.prompt');
-    if (lab) lab.textContent = on ? 'ia:~$' : 'mente:~$';
-    if (on) { aiModeBase = modeEl.textContent; modeEl.textContent = 'assistente ia'; }
-    else if (aiModeBase != null) { modeEl.textContent = aiModeBase; }
-  }
-  function aiClean(t) {
-    return String(t).replace(/\r/g, '')
-      .replace(/\*\*(.+?)\*\*/g, '$1').replace(/__(.+?)__/g, '$1')
-      .replace(/^\s{0,3}#{1,6}\s+/gm, '')
-      .replace(/^(\s*)[*-]\s+/gm, '$1• ')
-      .replace(/\n{3,}/g, '\n\n').trim();
-  }
-  function aiShow(text) { var d = ln('ai'); d.textContent = aiClean(text); add(d); }
-  function aiSpin() {
-    var el = ln('dim'), fr = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'], i = 0, t0 = Date.now();
-    function tick() { el.textContent = fr[i++ % fr.length] + ' pensando… ' + Math.floor((Date.now() - t0) / 1000) + 's · /parar cancela'; }
-    tick(); add(el);
-    var id = setInterval(tick, 100);
-    return function () { clearInterval(id); el.remove(); };
-  }
-  function aiSetupHelp() {
-    say('err', 'o assistente ainda não está conectado ao seu servidor.');
-    say('dim', '1) publique o servidor (pasta emrys-ia, veja o LEIA-ME)');
-    say('dim', '2) /ia url https://SEU-SERVIDOR.workers.dev');
-    say('dim', '3) /ia token SUA-CHAVE-DE-ACESSO');
-    say('dim', 'depois use /ia status para conferir.');
-  }
-  function aiReady() {
-    if (!aiUrl() || !aiCfg.token) { aiSetupHelp(); return false; }
-    return true;
-  }
-  function aiPayload(chat) {
-    var msgs = chat.msgs.slice(-AI_SEND_MSGS), total = 0, res = [];
-    for (var i = msgs.length - 1; i >= 0; i--) {
-      var t = msgs[i].x || msgs[i].t;
-      if (res.length && total + t.length > AI_SEND_CHARS) break;
-      total += t.length;
-      res.unshift({ role: msgs[i].r === 'u' ? 'user' : 'model', text: t });
-    }
-    while (res.length && res[0].role !== 'user') res.shift();
-    return { messages: res };
-  }
-  function askAI(text, opts) {
-    opts = opts || {};
-    text = String(text || '').trim();
-    if (!text) return;
-    if (text.length > AI_MAX_TEXT || (opts.ctx && opts.ctx.length > AI_MAX_TEXT)) {
-      say('err', 'texto grande demais. o limite é ' + AI_MAX_TEXT + ' caracteres por mensagem.'); return;
-    }
-    if (aiBusy) { say('err', 'ainda estou respondendo. espere, ou use /parar.'); return; }
-    if (!needNet()) return;
-    if (!aiReady()) return;
-    var now = Date.now();
-    aiTimes = aiTimes.filter(function (t) { return now - t < 60000; });
-    if (aiTimes.length >= AI_PER_MIN) { say('err', 'muitas mensagens seguidas. espere um pouco (limite de ' + AI_PER_MIN + ' por minuto).'); return; }
-    if (now - aiLast < AI_GAP) { say('err', 'calma, espere um instante entre as mensagens.'); return; }
-
-    var chat = aiChat(true);
-    var um = { r: 'u', t: opts.shown || text, ts: now };
-    if (opts.ctx) um.x = opts.ctx;
-    chat.msgs.push(um);
-    if (chat.msgs.length > AI_MAX_MSGS) chat.msgs.splice(0, chat.msgs.length - AI_MAX_MSGS);
-    if (!chat.t) chat.t = (opts.title || text).replace(/\s+/g, ' ').slice(0, 48);
-    chat.ts = now;
-    aiTimes.push(now); aiLast = now;
-    setAiMode(true);
-    aiSaveChats();
-
-    var ctl = window.AbortController ? new AbortController() : null;
-    var state = { cancel: false, timeout: false, ctl: ctl, stop: aiSpin() };
-    aiBusy = state;
-    var timer = setTimeout(function () { state.timeout = true; if (ctl) ctl.abort(); }, AI_TIMEOUT);
-    function finish() { clearTimeout(timer); state.stop(); aiBusy = null; }
-    function fail(msg) {
-      finish();
-      var i = chat.msgs.lastIndexOf(um);
-      if (i !== -1) chat.msgs.splice(i, 1);
-      aiSaveChats();
-      say('err', msg);
-      say('dim', 'sua mensagem não foi enviada. a seta para cima repete o que você digitou.');
-    }
-    fetch(aiUrl() + '/chat', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-emrys-token': aiCfg.token },
-      body: JSON.stringify(aiPayload(chat)),
-      cache: 'no-store', credentials: 'omit',
-      signal: ctl ? ctl.signal : undefined
-    }).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (d) { return { r: r, d: d }; });
-    }).then(function (x) {
-      if (!x.r.ok) {
-        var m = (x.d && x.d.error && x.d.error.message) || ('o servidor respondeu com erro (' + x.r.status + ').');
-        var ra = Number(x.r.headers.get('retry-after'));
-        if (x.r.status === 429 && ra) m += ' (cerca de ' + ra + ' s)';
-        if (x.r.status === 401) m += ' use /ia token <chave> para corrigir.';
-        return fail(m);
-      }
-      if (!x.d || typeof x.d.text !== 'string' || !x.d.text.trim()) return fail('a IA não devolveu resposta. tente de novo.');
-      finish();
-      chat.msgs.push({ r: 'm', t: x.d.text, ts: Date.now() });
-      chat.ts = Date.now();
-      aiSaveChats();
-      aiAnswer = x.d.text;
-      aiShow(x.d.text);
-      if (chat.msgs.length <= 2) say('dim', '/guardar salva essa resposta como pensamento · /nova começa outra conversa · /voltar sai do assistente');
-    }).catch(function () {
-      if (state.cancel) { finish(); var i = chat.msgs.lastIndexOf(um); if (i !== -1) chat.msgs.splice(i, 1); aiSaveChats(); say('dim', 'cancelado.'); return; }
-      if (state.timeout) return fail('a IA demorou demais. tente de novo.');
-      fail('não consegui falar com o servidor da IA. confira a internet e o endereço (/ia status).');
-    });
-  }
-  function thoughtText(arg) {
-    var m = /^#?(\d+)$/.exec(arg.trim());
-    if (!m) return null;
-    for (var i = 0; i < items.length; i++) if (items[i].n === +m[1]) return items[i].t;
-    return undefined;
-  }
-  function aiTextArg(arg, usage) {
-    arg = arg.trim();
-    if (!arg) { say('err', 'use ' + usage); return null; }
-    var t = thoughtText(arg);
-    if (t === undefined) { say('err', 'não achei esse pensamento.'); return null; }
-    return t === null ? arg : t;
-  }
-  function cmdResumir(arg) {
-    var t = aiTextArg(arg, '/resumir <texto ou nº do pensamento>'); if (t == null) return;
-    askAI('Resuma o texto a seguir em português, de forma clara e curta, mantendo os pontos principais:\n\n' + t, { title: 'resumo', shown: '/resumir ' + (arg.length > 200 ? arg.slice(0, 200) + '…' : arg), ctx: 'Resuma o texto a seguir em português, de forma clara e curta, mantendo os pontos principais:\n\n' + t });
-  }
-  function cmdCorrigir(arg) {
-    var t = aiTextArg(arg, '/corrigir <texto ou nº do pensamento>'); if (t == null) return;
-    var p = 'Corrija a ortografia, a gramática e a pontuação do texto a seguir, mantendo o meu jeito de escrever. Devolva primeiro o texto corrigido e depois, em poucas linhas, o que mudou:\n\n' + t;
-    askAI(p, { title: 'correção', shown: '/corrigir ' + (arg.length > 200 ? arg.slice(0, 200) + '…' : arg), ctx: p });
-  }
-  function cmdIdeias(arg) {
-    arg = arg.trim();
-    if (!arg) { say('err', 'use /ideias <tema>. exemplo: /ideias nomes para um livro de contos'); return; }
-    var p = 'Me dê de 5 a 8 ideias criativas e práticas sobre: ' + arg;
-    askAI(p, { title: 'ideias: ' + arg });
-  }
-  function cmdDiario(arg) {
-    var a = arg.trim(), per = 'semana', m = /^(hoje|semana|mes|mês|tudo)\b\s*([\s\S]*)$/i.exec(a);
-    if (m) { per = norm(m[1]); a = m[2].trim(); }
-    if (!items.length) { say('dim', 'seu diário está vazio. escreva alguns pensamentos primeiro.'); return; }
-    if (!aiCfg.ack) {
-      if (!aiPendingDiary) {
-        aiPendingDiary = true;
-        say('dim', 'atenção: este comando envia os seus pensamentos do período escolhido para o Google (Gemini) responderem.');
-        say('dim', 'no plano gratuito, o Google pode usar o conteúdo enviado para melhorar os produtos dele. não envie o que é muito íntimo.');
-        say('dim', 'para continuar, digite /diario de novo.');
-        return;
-      }
-      aiCfg.ack = true; aiSaveCfg();
-    }
-    var nowT = Date.now(), lim = per === 'hoje' ? 0 : per === 'semana' ? 7 : per === 'mes' ? 30 : Infinity;
-    var sel = items.filter(function (x) {
-      if (per === 'hoje') return dayKey(x.ts) === dayKey(nowT);
-      return lim === Infinity || nowT - x.ts <= lim * 86400000;
-    });
-    if (!sel.length) { say('dim', 'nenhum pensamento nesse período.'); return; }
-    var lines = [], size = 0, used = 0;
-    for (var i = sel.length - 1; i >= 0; i--) {
-      var l = '[' + fmt(sel[i].ts) + '] ' + sel[i].t;
-      if (size + l.length > AI_MAX_TEXT - 600) break;
-      lines.unshift(l); size += l.length + 1; used++;
-    }
-    var req = a || 'Organize em temas, faça um resumo do período e sugira 3 perguntas para eu refletir.';
-    var p = 'Estes são pensamentos do meu diário pessoal, cada um com a data. Pedido: ' + req + '\n\n' + lines.join('\n');
-    say('dim', 'enviando ' + used + (used === 1 ? ' pensamento' : ' pensamentos') + ' (' + (per === 'tudo' ? 'tudo' : per) + ') para a IA…' + (used < sel.length ? ' só os mais recentes couberam.' : ''));
-    askAI(req, { title: 'diário · ' + per, shown: '/diario ' + per + ' · ' + used + ' pensamentos · ' + req, ctx: p });
-  }
-  function cmdIa(arg) {
-    var m = /^(\S+)\s*([\s\S]*)$/.exec(arg.trim()), sub = m ? norm(m[1]) : '', rest = m ? m[2].trim() : '';
-    if (sub === 'url') {
-      var u = rest.replace(/\/(chat|health)?\/?$/, '').replace(/\/+$/, '');
-      if (!/^https:\/\/[^\s/]+\.[^\s/]+/i.test(u) && !/^http:\/\/localhost(:\d+)?$/i.test(u)) { say('err', 'use o endereço completo com https. exemplo: /ia url https://emrys-ia.seunome.workers.dev'); return; }
-      aiCfg.url = u; aiSaveCfg(); say('ok', 'servidor guardado: ' + u);
-      return;
-    }
-    if (sub === 'token') {
-      var last = out.lastElementChild;
-      if (last && last.classList.contains('echo')) last.remove();   // não deixa a chave aparecendo na tela
-      hist.pop(); hi = hist.length;
-      if (rest.length < 8) { say('err', 'use /ia token <chave de acesso>, a mesma que você pôs no servidor (mínimo 8 caracteres).'); return; }
-      aiCfg.token = rest; aiSaveCfg(); say('ok', 'chave de acesso guardada neste aparelho (' + rest.length + ' caracteres). ela não fica visível na tela.');
-      return;
-    }
-    if (sub === 'esquecer') { aiCfg.url = ''; aiCfg.token = ''; aiCfg.ack = false; aiSaveCfg(); say('ok', 'endereço e chave de acesso removidos deste aparelho.'); return; }
-    if (sub === 'status') { return aiStatus(); }
-    if (sub === 'modelos') { return aiModels(); }
-    if (!sub) {
-      if (!aiReady()) return;
-      setAiMode(true);
-      say('ok', '● assistente ligado. escreva normalmente e a IA responde. seus pensamentos não são salvos enquanto estiver aqui.');
-      say('dim', '/voltar sai · /nova nova conversa · /conversas histórico · /resumir /corrigir /ideias /diario · /guardar salva a última resposta.');
-      return;
-    }
-    askAI(arg);
-  }
-  function aiStatus() {
-    var u = aiUrl();
-    grid([
-      ['servidor', u || 'não definido'],
-      ['chave de acesso', aiCfg.token ? 'definida' : 'não definida'],
-      ['conversas salvas', String(aiStore.chats.length)],
-      ['modo assistente', aiMode ? 'ligado' : 'desligado']
-    ], 'stat');
-    if (!u) { aiSetupHelp(); return; }
-    if (!needNet()) return;
-    var el = say('dim', 'testando o servidor…');
-    var ctl = window.AbortController ? new AbortController() : null, tm = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
-    fetch(u + '/health', { cache: 'no-store', credentials: 'omit', signal: ctl ? ctl.signal : undefined })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        clearTimeout(tm); el.remove();
-        if (!d || !d.ok) throw new Error('x');
-        grid([
-          ['resposta', 'servidor no ar'],
-          ['chave do Gemini no servidor', d.configured && d.configured.key ? 'configurada' : 'FALTA configurar'],
-          ['chave de acesso no servidor', d.configured && d.configured.token ? 'configurada' : 'FALTA configurar'],
-          ['modelo', String(d.model || '?')]
-        ], 'stat');
-      })
-      .catch(function () { clearTimeout(tm); el.className = 'ln err'; el.textContent = 'não consegui falar com o servidor. confira o endereço, a internet e se o site está em ALLOWED_ORIGINS.'; });
-  }
-  function aiModels() {
-    if (!aiReady() || !needNet()) return;
-    var el = say('dim', 'consultando modelos disponíveis…');
-    fetch(aiUrl() + '/modelos', { headers: { 'x-emrys-token': aiCfg.token }, cache: 'no-store', credentials: 'omit' })
-      .then(function (r) { return r.json().then(function (d) { return { r: r, d: d }; }); })
-      .then(function (x) {
-        el.remove();
-        if (!x.r.ok) { say('err', (x.d && x.d.error && x.d.error.message) || 'não consegui listar os modelos.'); return; }
-        say('res', '↳ modelo em uso: ' + x.d.atual);
-        say('', x.d.models.slice(0, 30).join('\n'));
-        say('dim', 'para trocar, mude a variável GEMINI_MODEL no painel da Cloudflare.');
-      })
-      .catch(function () { el.className = 'ln err'; el.textContent = 'não consegui falar com o servidor.'; });
-  }
-  function cmdVoltar() {
-    if (!aiMode) { say('dim', 'você já está no modo de pensamentos.'); return; }
-    setAiMode(false);
-    say('ok', 'de volta aos pensamentos. o que você escrever volta a ser guardado.');
-  }
-  function cmdParar() {
-    if (!aiBusy) { say('dim', 'nada em andamento.'); return; }
-    aiBusy.cancel = true; if (aiBusy.ctl) aiBusy.ctl.abort();
-  }
-  function cmdNova() {
-    aiStore.cur = null; aiSaveChats(); aiAnswer = '';
-    setAiMode(true);
-    say('ok', '● nova conversa. a anterior ficou guardada em /conversas.');
-    if (!aiUrl() || !aiCfg.token) aiSetupHelp();
-  }
-  function cmdConversas(arg) {
-    var a = norm(arg.trim()), m;
-    if ((m = /^apagar\s+(\S+)$/.exec(a))) {
-      if (m[1] === 'tudo') { aiStore.chats = []; aiStore.cur = null; aiSaveChats(); say('ok', 'histórico de conversas apagado.'); return; }
-      var k = +m[1] - 1, c = aiStore.chats[k];
-      if (!c) { say('err', 'não achei essa conversa.'); return; }
-      aiStore.chats.splice(k, 1); if (aiStore.cur === c.id) aiStore.cur = null; aiSaveChats();
-      say('ok', 'conversa apagada: ' + c.t); return;
-    }
-    if (/^\d+$/.test(a)) {
-      var ch = aiStore.chats[+a - 1];
-      if (!ch) { say('err', 'não achei essa conversa. /conversas mostra a lista.'); return; }
-      aiStore.cur = ch.id; aiSaveChats(); setAiMode(true);
-      say('res', '↳ conversa: ' + ch.t + ' · ' + fmt(ch.ts));
-      ch.msgs.forEach(function (x) { if (x.r === 'u') { var e = ln('echo'); var p = document.createElement('span'); p.className = 'p'; p.textContent = 'você'; e.append(p, document.createTextNode(x.t)); add(e); } else { aiShow(x.t); aiAnswer = x.t; } });
-      say('dim', 'pode continuar essa conversa. /nova começa outra.');
-      return;
-    }
-    if (!aiStore.chats.length) { say('dim', 'nenhuma conversa ainda. /ia liga o assistente.'); return; }
-    say('res', '↳ ' + aiStore.chats.length + (aiStore.chats.length === 1 ? ' conversa' : ' conversas'));
-    grid(aiStore.chats.map(function (c, i) {
-      return [(i + 1) + (c.id === aiStore.cur ? ' ●' : ''), c.t + ' · ' + fmt(c.ts) + ' · ' + c.msgs.length + ' msgs'];
-    }), 'help');
-    say('dim', '/conversas <nº> abre · /conversas apagar <nº|tudo> remove');
-  }
-  function cmdGuardar() {
-    if (!aiAnswer) { say('dim', 'ainda não há resposta da IA para guardar.'); return; }
-    saveThought(aiClean(aiAnswer));
-  }
-
   var CMDS = [
     { n: 'ajuda', al: ['help', '?'], u: '/ajuda', d: 'mostra esta lista', run: cmdAjuda },
-    { n: 'listar', al: ['ls', 'l'], u: '/listar [n|tudo]', d: 'últimos pensamentos, 10 por padrão', run: cmdListar },
+    { n: 'listar', al: ['ls', 'l'], u: '/listar [n|tudo]', d: 'últimos pensamentos (quantidade em /config)', run: cmdListar },
     { n: 'hoje', al: [], u: '/hoje', d: 'o que você escreveu hoje', run: cmdHoje },
     { n: 'buscar', al: ['grep', 'b'], u: '/buscar <texto>', d: 'procura sem ligar para acento', run: cmdBuscar },
     { n: 'tags', al: [], u: '/tags', d: 'suas #tags e quantas vezes usou', run: cmdTags },
@@ -1574,17 +1479,7 @@ body {
     { n: 'ip', al: [], u: '/ip', d: 'seu IP público e local aproximado', run: cmdIp },
     { n: 'ping', al: ['latencia'], u: '/ping [site]', d: 'testa a latência até um site', run: cmdPing },
     { n: 'site', al: ['up', 'online'], u: '/site <endereço...>', d: 'verifica se sites estão no ar', run: cmdSite },
-    { n: 'ia', al: ['ai', 'assistente'], u: '/ia [pergunta]', d: 'liga o assistente de IA (config: /ia status)', run: cmdIa },
-    { n: 'resumir', al: ['resumo'], u: '/resumir <texto|nº>', d: 'a IA resume um texto ou pensamento', run: cmdResumir },
-    { n: 'corrigir', al: ['revisar'], u: '/corrigir <texto|nº>', d: 'a IA corrige ortografia e gramática', run: cmdCorrigir },
-    { n: 'ideias', al: ['ideia'], u: '/ideias <tema>', d: 'a IA sugere ideias', run: cmdIdeias },
-    { n: 'diario', al: ['diário'], u: '/diario [hoje|semana|mes|tudo]', d: 'a IA organiza e resume seu diário', run: cmdDiario },
-    { n: 'nova', al: ['novo', 'new'], u: '/nova', d: 'começa uma nova conversa com a IA', run: cmdNova },
-    { n: 'conversas', al: ['chats', 'historico'], u: '/conversas [nº|apagar nº]', d: 'histórico de conversas com a IA', run: cmdConversas },
-    { n: 'guardar', al: ['gravar'], u: '/guardar', d: 'salva a última resposta da IA como pensamento', run: cmdGuardar },
-    { n: 'parar', al: ['cancelar'], u: '/parar', d: 'cancela a resposta em andamento', run: cmdParar },
-    { n: 'voltar', al: ['mente', 'pensar'], u: '/voltar', d: 'sai do assistente e volta aos pensamentos', run: cmdVoltar },
-    { n: 'config', al: ['configurar', 'cfg', 'ajustes'], u: '/config', d: 'cor e tamanho da fonte', run: cmdConfig },
+    { n: 'config', al: ['configurar', 'cfg', 'ajustes'], u: '/config', d: 'aparência e comportamento do programa', run: cmdConfig },
     { n: 'backup', al: ['salvar'], u: '/backup', d: 'gera uma cópia completa para guardar', run: cmdBackup },
     { n: 'restaurar', al: ['importar', 'restore'], u: '/restaurar', d: 'volta pensamentos de uma cópia', run: cmdRestaurar },
     { n: 'versao', al: ['version', 'ver'], u: '', d: '', run: cmdVersao, hidden: true },
@@ -1606,9 +1501,10 @@ body {
     say('res', '↳ guardado como #' + it.n + ' · ' + fmt(it.ts) + (tg.length ? ' · ' + tg.map(function (x) { return '#' + x; }).join(' ') : ''));
   }
   function run(v) {
+    prune();
     hist.push(v); hi = hist.length;
     var e = ln('echo');
-    var pr = document.createElement('span'); pr.className = 'p'; pr.textContent = aiMode ? 'ia:~$' : 'mente:~$';
+    var pr = document.createElement('span'); pr.className = 'p'; pr.textContent = promptTxt();
     e.append(pr, document.createTextNode(v));
     add(e);
     var isCmd = v.charAt(0) === '/' && v.charAt(1) !== '/';
@@ -1620,7 +1516,7 @@ body {
     if (wipe && name !== 'confirmar') { wipe = false; say('dim', 'apagar tudo cancelado.'); }
     if (!isCmd) {
       var plain = v.charAt(0) === '/' ? v.slice(1) : v;
-      if (aiMode) askAI(plain); else saveThought(plain);
+      saveThought(plain);
       return;
     }
     if (!name) { say('err', 'digite um comando depois da barra. /ajuda mostra a lista.'); return; }
@@ -1636,7 +1532,43 @@ body {
     inp.style.height = 'auto';
     var h = inp.scrollHeight;
     inp.style.height = h ? Math.min(h, 160) + 'px' : '';
+    updateSug();
   }
+  /* ---------- sugestões de comando ---------- */
+  var sugKey = '';
+  function updateSug() {
+    if (!sugEl || typeof CMDS === 'undefined') return;
+    var v = inp.value, res = [];
+    if (cfg.sug && /^\/[^\s\/]*$/.test(v)) {
+      var q = norm(v.slice(1));
+      CMDS.forEach(function (c) {
+        if (c.hidden) return;
+        if (!q || c.n.indexOf(q) === 0 || c.al.some(function (x) { return x.indexOf(q) === 0; })) res.push(c.n);
+      });
+      if (res.length === 1 && res[0] === q) res = [];
+    }
+    var on = res.length > 0;
+    var k = res.join(',');
+    if (k !== sugKey) {
+      sugKey = k; sugEl.textContent = '';
+      res.forEach(function (n) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'chip'; b.dataset.fill = '/' + n + ' '; b.textContent = '/' + n;
+        sugEl.appendChild(b);
+      });
+      sugEl.scrollLeft = 0;
+    }
+    if (on !== sugOn) { sugOn = on; showBars(); }
+  }
+  function fillCmd(text) {
+    inp.value = text; grow(); inp.focus();
+    try { inp.setSelectionRange(text.length, text.length); } catch (e) {}
+  }
+  if (sugEl) sugEl.addEventListener('click', function (e) {
+    var b = e.target.closest('.chip');
+    if (b && b.dataset.fill && !inp.disabled) fillCmd(b.dataset.fill);
+  });
+
   f.addEventListener('submit', function (e) {
     e.preventDefault();
     var v = inp.value.replace(/\s+$/, '');
@@ -1645,9 +1577,13 @@ body {
   });
   inp.addEventListener('input', grow);
   inp.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    if (e.key === 'Enter' && !e.isComposing && (cfg.enter === 'quebra' ? (e.ctrlKey || e.metaKey) : !e.shiftKey)) {
       e.preventDefault();
       f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      return;
+    }
+    if (e.key === 'Tab' && !e.shiftKey && sugOn && sugEl.firstChild) {
+      e.preventDefault(); fillCmd(sugEl.firstChild.dataset.fill);
       return;
     }
     var single = inp.value.indexOf('\n') === -1;
@@ -1676,7 +1612,7 @@ body {
     if (e.key === '/' || e.key.length === 1) { inp.focus(); }
   });
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    document.querySelector('.chips').addEventListener('click', function () { setTimeout(function () { inp.focus(); }, 0); });
+    Array.prototype.forEach.call(document.querySelectorAll('.chips'), function (nav) { nav.addEventListener('click', function () { setTimeout(function () { inp.focus(); }, 0); }); });
   }
   var chipOut = {};
   function syncChips() {
@@ -1686,7 +1622,7 @@ body {
       all[i].setAttribute('aria-pressed', String(!!(nodes && nodes.length && nodes[0].isConnected)));
     }
   }
-  document.querySelector('.chips').addEventListener('click', function (e) {
+  function chipClick(e) {
     var b = e.target.closest('.chip');
     if (!b || inp.disabled) return;
     var cmd = b.dataset.cmd, prev = chipOut[cmd];
@@ -1700,8 +1636,16 @@ body {
     run('/' + cmd);
     chipOut[cmd] = Array.prototype.slice.call(out.children).filter(function (n) { return before.indexOf(n) === -1; });
     syncChips();
-  });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.chips'), function (nav) { nav.addEventListener('click', chipClick); });
   out.addEventListener('click', function (e) {
+    var idEl = e.target.closest('.th .id');
+    if (idEl) {
+      var num = +idEl.parentNode.dataset.n, found = null;
+      for (var q = 0; q < items.length; q++) if (items[q].n === num) found = items[q];
+      if (found && !inp.disabled) fillCmd('/editar ' + found.n + ' ' + found.t);
+      return;
+    }
     var t = e.target.closest('.tag');
     if (t) { run('/tag ' + t.dataset.tag); return; }
     if (e.target.closest('button')) return;
@@ -1710,6 +1654,15 @@ body {
   });
 
   /* ---------- abertura ---------- */
+  function streakNow() {
+    var days = {};
+    items.forEach(function (x) { days[dayKey(x.ts)] = 1; });
+    var d = new Date();
+    if (!days[dayKey(d.getTime())]) d.setDate(d.getDate() - 1);
+    var n = 0;
+    while (days[dayKey(d.getTime())]) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
   function welcome() {
     var h = new Date().getHours();
     var sauda = h < 5 ? 'boa madrugada' : h < 12 ? 'bom dia' : h < 18 ? 'boa tarde' : 'boa noite';
@@ -1722,16 +1675,32 @@ body {
     add(ln('brand', 'EMRYS'));
     say('dim', sauda + (data ? ' · ' + data : ''));
     gap();
-    say('', 'escreva o que estiver na cabeça e aperte Enter. fica guardado.');
-    say('dim', 'digite /ajuda para ver os comandos. #palavra dentro do texto cria uma tag.');
+    if (items.length) {
+      var k = dayKey(Date.now()), hoje = items.filter(function (x) { return dayKey(x.ts) === k; }).length, st = streakNow();
+      grid([
+        ['hoje', hoje + (hoje === 1 ? ' pensamento' : ' pensamentos')],
+        ['total', items.length + (items.length === 1 ? ' pensamento' : ' pensamentos')],
+        ['sequência', st + (st === 1 ? ' dia' : ' dias')],
+        ['último', ago(items[items.length - 1].ts)]
+      ], 'stat');
+      var old = items.filter(function (x) { return Date.now() - x.ts > 7 * 86400000; });
+      if (old.length) {
+        var it = old[Math.floor(Math.random() * old.length)];
+        gap();
+        say('res', '↳ lembrança de ' + ago(it.ts));
+        add(thEl(it));
+      }
+      gap();
+      say('dim', 'escreva e aperte Enter para guardar · /ajuda mostra os comandos · #palavra cria uma tag.');
+    } else {
+      say('', 'escreva o que estiver na cabeça e aperte Enter. fica guardado.');
+      say('dim', 'digite /ajuda para ver os comandos. #palavra dentro do texto cria uma tag.');
+      gap();
+      say('dim', 'nenhum pensamento guardado ainda. escreva o primeiro abaixo.');
+    }
     gap();
     if (mode === 'cloud') say('ok', '● cofre privado ativo. seus pensamentos ficam guardados na sua conta, não neste aparelho.');
     else say('dim', '○ guardado só neste aparelho. use /backup para ter uma cópia.');
-    if (items.length) {
-      say('dim', items.length + (items.length === 1 ? ' pensamento guardado' : ' pensamentos guardados') + ' · o último foi ' + ago(items[items.length - 1].ts).replace(/^há /, 'há ') + '.');
-    } else {
-      say('dim', 'nenhum pensamento guardado ainda. escreva o primeiro abaixo.');
-    }
   }
 
   /* ---------- login ---------- */
@@ -1819,6 +1788,21 @@ body {
     return '';
   }
 
+  var USER_KEY = 'pensamentos.user.v1';
+  function curUser() {
+    var u = '';
+    try { u = sessionStorage.getItem(USER_KEY) || ''; } catch (e) {}
+    if (!u) { try { u = localStorage.getItem(USER_KEY) || ''; } catch (e) {} }
+    u = u.toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 16);
+    return u || 'mente';
+  }
+  function promptTxt() { return curUser() + ':~$'; }
+  function rememberUser(u, keep) {
+    u = String(u || '').toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 16);
+    if (!u) return;
+    try { sessionStorage.setItem(USER_KEY, u); } catch (e) {}
+    if (keep) { try { localStorage.setItem(USER_KEY, u); } catch (e) {} }
+  }
   function stored() {
     try { if (sessionStorage.getItem(AUTH_KEY) === authToken()) return true; } catch (e) {}
     try { if (localStorage.getItem(AUTH_KEY) === authToken()) return true; } catch (e) {}
@@ -1830,6 +1814,7 @@ body {
     });
   }
   function cmdSair() {
+    try { sessionStorage.removeItem(USER_KEY); localStorage.removeItem(USER_KEY); } catch (e) {}
     try { sessionStorage.removeItem(AUTH_KEY); } catch (e) {}
     try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
     say('ok', 'trancado. até logo.');
@@ -1847,7 +1832,10 @@ body {
       if (window.matchMedia('(pointer: fine)').matches) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
     });
   }
-  function enter(keep) {
+  function enter(keep, user) {
+    if (user) rememberUser(user, keep);
+    var lab = document.querySelector('.prompt');
+    if (lab) lab.textContent = promptTxt();
     try { sessionStorage.setItem(AUTH_KEY, authToken()); } catch (e) {}
     if (keep) { try { localStorage.setItem(AUTH_KEY, authToken()); } catch (e) {} }
     gate.hidden = true;
@@ -1863,7 +1851,7 @@ body {
     var u = gUser.value.trim().toLowerCase(), p = gPass.value;
     gGo.disabled = true;
     verifyLogin(u, p).then(function (okLogin) {
-      if (okLogin) { gMsg.textContent = ''; gPass.value = ''; enter(gKeep.checked); return; }
+      if (okLogin) { gMsg.textContent = ''; gPass.value = ''; enter(gKeep.checked, u); return; }
       fails++;
       gPass.value = '';
       gMsg.textContent = 'login ou senha incorretos.';
@@ -1883,6 +1871,7 @@ body {
     document.addEventListener(ev, touch, { passive: true, capture: true });
   });
   function lockNow() {
+    try { sessionStorage.removeItem(USER_KEY); localStorage.removeItem(USER_KEY); } catch (e) {}
     try { sessionStorage.removeItem(AUTH_KEY); } catch (e) {}
     try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
     term.hidden = true; gate.hidden = false;

@@ -1,6 +1,6 @@
 // Guarda os arquivos do app para abrir sem internet.
 // Para forçar uma atualização, mude o número da versão abaixo.
-const VERSAO = 'pensamentos-v1';
+const VERSAO = 'emrys-v2';
 const ARQUIVOS = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -19,13 +19,23 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;           // fontes e outros sites seguem pela rede
-  e.respondWith(
+  // rede primeiro (para você sempre ver a versão nova); se a rede demorar mais de 3 s, usa a cópia guardada
+  e.respondWith(new Promise((resolve) => {
+    let feito = false;
+    const entregar = (r) => { if (!feito && r) { feito = true; resolve(r); } };
+    const timer = setTimeout(() => { caches.match(e.request).then(entregar); }, 3000);
     fetch(e.request)
       .then((r) => {
+        clearTimeout(timer);
         const copia = r.clone();
         caches.open(VERSAO).then((c) => c.put(e.request, copia));
-        return r;
+        entregar(r);
       })
-      .catch(() => caches.match(e.request).then((r) => r || caches.match('index.html')))
-  );
+      .catch(() => {
+        clearTimeout(timer);
+        caches.match(e.request).then((r) => r || caches.match('index.html')).then((r) => {
+          if (r) entregar(r); else if (!feito) { feito = true; resolve(Response.error()); }
+        });
+      });
+  }));
 });
