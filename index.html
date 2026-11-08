@@ -643,6 +643,13 @@ body {
 .cfr-sheetbox .drv-btn.danger, .drv-acts .drv-btn.danger { color: var(--err); }
 .cfr-sheetbox .cfr-cancel, .drv-card .cfr-cancel { justify-content: center; color: var(--dim); margin-top: 4px; }
 .drv-pv { box-sizing: border-box; }
+
+/* ---------- Emrys Cloud (v1.24) ---------- */
+.cld-form { display: flex; flex-direction: column; gap: 4px; }
+.cld-in { display: block; width: 100%; box-sizing: border-box; height: 46px; margin: 4px 0; padding: 0 12px; background: #050403; border: 1px solid var(--line); outline: 0; }
+.cld-in:focus { border-color: var(--accent); }
+.cld-tabs { display: flex; gap: 6px; justify-content: center; margin: 4px 0 10px; }
+.cld .drv-card .drv-p { overflow-wrap: anywhere; }
 </style>
 
 <div class="term" hidden>
@@ -717,7 +724,7 @@ body {
 (function () {
   'use strict';
   var KEY = 'pensamentos.v2';
-  var VERSION = '1.23.0', BUILD = '2026-11-07';
+  var VERSION = '1.24.0', BUILD = '2026-11-07';
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out'), f = $('f'), inp = $('in'), modeEl = $('mode'), clock = $('clock');
   var MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -1681,6 +1688,7 @@ body {
     var h = location.hash || '';
     if (h.indexOf('access_token=') < 0 && h.indexOf('error=') < 0) return;
     var p = new URLSearchParams(h.slice(1)), s = drvLoad();
+    if (!p.get('state')) return;   /* sem state não é do Google Drive (pode ser link do Emrys Cloud) */
     if (p.get('state') && p.get('state') === s.state && p.get('access_token')) {
       s.tok = p.get('access_token'); s.exp = Date.now() + (+p.get('expires_in') || 3600) * 1000; s.was = 1; s.resume = 1;
     }
@@ -3062,6 +3070,555 @@ body {
     }).catch(function (e) { cf.busy = false; cfList(); cfNote(/quota/i.test((e && e.name) + (e && e.message)) ? cfErr(e) : (e && e.message) || 'não foi possível restaurar.'); });
   }
 
+  /* ---------- EMRYS CLOUD (v1.24) · arquivos privados no Supabase ----------
+     Fala direto com a API oficial do Supabase (Auth/GoTrue e Storage) por fetch, sem biblioteca de terceiros.
+     No navegador só existe a chave PUBLICÁVEL (feita para ser pública). Quem protege os arquivos é o servidor:
+     o bucket é privado e as políticas do Storage só deixam cada pessoa mexer na pasta com o próprio ID. */
+  var CL_URL = 'https://nnbceulazemvnpumkxcr.supabase.co', CL_KEY = 'sb_publishable_TQO3fJDmWmjrSbPbQW9wBA_EQxl4Hr0', CL_BUCKET = 'emrys-files';
+  var CL_QUOTA = 1024 * 1024 * 1024, CL_MAX = 50 * 1024 * 1024;   /* limites do plano gratuito do Supabase (1 GB no total, 50 MB por arquivo) */
+  var CL_SK = 'emrys.cloud.session', CL_KEEP = '.emptyFolderPlaceholder', CL_BASE = ['Fotos', 'Videos', 'Documentos', 'Outros'];
+  var cl = { el: null, s: null, view: '', path: '', q: '', sort: 'name', items: [], idx: null, idxP: null, busy: false, msg: '', pv: null, loading: false, refreshing: null, req: 0, pendingMsg: '' };
+
+  /* link vindo do e-mail do Supabase (recuperar senha / confirmar cadastro): guardado até o Emrys ser aberto */
+  var CL_HASH = (function () {
+    var h = location.hash || ''; if (h.length < 2) return null;
+    var p = new URLSearchParams(h.slice(1));
+    if (p.get('state')) return null;   /* é o retorno do Google Drive */
+    if (p.get('access_token') && p.get('refresh_token')) return { at: p.get('access_token'), rt: p.get('refresh_token'), exp: Date.now() + (+p.get('expires_in') || 3600) * 1000, type: p.get('type') || '' };
+    if (p.get('error_description') && (p.get('error_code') || p.get('error'))) return { err: p.get('error_description') };
+    return null;
+  })();
+
+  function clLoadS() { try { return JSON.parse(localStorage.getItem(CL_SK)) || null; } catch (e) { return null; } }
+  function clSaveS(s) { cl.s = s; try { if (s) localStorage.setItem(CL_SK, JSON.stringify(s)); else localStorage.removeItem(CL_SK); } catch (e) {} }
+  function clFromAuth(j) {
+    return { at: j.access_token, rt: j.refresh_token, exp: j.expires_at ? j.expires_at * 1000 : Date.now() + (+j.expires_in || 3600) * 1000, uid: j.user && j.user.id, email: j.user && j.user.email };
+  }
+  var CL_MSG = [
+    [/invalid login credentials|invalid_credentials/i, 'e-mail ou senha incorretos.'],
+    [/email not confirmed|email_not_confirmed/i, 'confirme o e-mail antes de entrar (veja a caixa de entrada e o spam).'],
+    [/already registered|already been registered|user_already_exists/i, 'já existe uma conta com esse e-mail. use “entrar”.'],
+    [/rate limit|over_email_send_rate_limit|too many/i, 'muitas tentativas ou e-mails enviados. aguarde um pouco (o plano gratuito limita e-mails por hora).'],
+    [/password should be|weak_password|at least \d+ char/i, 'a senha é fraca demais. use pelo menos 8 caracteres.'],
+    [/token has expired|otp_expired|expired or is invalid|invalid.*token|otp/i, 'código inválido ou expirado. peça outro.'],
+    [/same password|same_password/i, 'a nova senha precisa ser diferente da anterior.'],
+    [/signup.*disabled|signups not allowed/i, 'novos cadastros estão desativados neste projeto.'],
+    [/invalid email|validate_failed|unable to validate email/i, 'e-mail inválido.'],
+    [/exceeded the maximum allowed size|payload too large|entity too large/i, 'arquivo maior que o limite permitido pelo plano gratuito (50 MB).'],
+    [/quota|storage.*limit|exceeded.*limit|insufficient/i, 'o espaço do plano gratuito acabou. apague arquivos ou aumente o plano.'],
+    [/duplicate|already exists/i, 'já existe um item com esse nome aqui.'],
+    [/row-level security|violates.*polic|unauthorized|not authorized/i, 'o servidor negou o acesso (política de segurança). confira as políticas do bucket.'],
+    [/bucket not found/i, 'bucket “emrys-files” não encontrado no Supabase.'],
+    [/not.?found|object not found/i, 'item não encontrado.']
+  ];
+  function clMsg(e) {
+    if (e && e.net) return 'sem conexão com o Supabase. verifique a internet.';
+    var t = (e && (e.message || e.msg)) || '';
+    for (var i = 0; i < CL_MSG.length; i++) if (CL_MSG[i][0].test(t + ' ' + ((e && e.code) || ''))) return CL_MSG[i][1];
+    return t ? 'erro: ' + t : 'algo deu errado. tente de novo.';
+  }
+  function clReq(method, path, body, opt) {
+    opt = opt || {};
+    var headers = { apikey: CL_KEY };
+    if (opt.token) headers.Authorization = 'Bearer ' + opt.token;
+    if (body !== undefined && !opt.form) headers['Content-Type'] = 'application/json';
+    return fetch(CL_URL + path, { method: method, headers: headers, body: body === undefined ? undefined : (opt.form ? body : JSON.stringify(body)) }).then(function (r) {
+      return r.text().then(function (t) {
+        var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+        if (!r.ok) {
+          var er = new Error((j && (j.msg || j.message || j.error_description || j.error)) || ('erro ' + r.status));
+          er.status = r.status; er.code = (j && (j.error_code || j.code || j.error)) || ''; throw er;
+        }
+        return j;
+      });
+    }, function () { var er = new Error('net'); er.net = true; throw er; });
+  }
+  function clToken() {
+    var s = cl.s || clLoadS(); if (!s) { var e = new Error('sem sessão'); e.auth = true; return Promise.reject(e); }
+    cl.s = s;
+    if (s.exp - Date.now() > 60000) return Promise.resolve(s.at);
+    if (cl.refreshing) return cl.refreshing;
+    cl.refreshing = clReq('POST', '/auth/v1/token?grant_type=refresh_token', { refresh_token: s.rt }).then(function (j) {
+      var n = clFromAuth(j); if (!n.uid) { n.uid = s.uid; n.email = s.email; } clSaveS(n); cl.refreshing = null; return n.at;
+    }, function (e) {
+      cl.refreshing = null;
+      if (!e.net) { clSaveS(null); e.auth = true; if (cl.el) { cl.view = 'auth'; cl.msg = 'sua sessão expirou. entre de novo.'; clRender(); } }
+      throw e;
+    });
+    return cl.refreshing;
+  }
+  function clApi(method, path, body, opt) {
+    return clToken().then(function (t) { return clReq(method, path, body, Object.assign({}, opt, { token: t })); });
+  }
+  function clEnc(p) { return p.split('/').map(encodeURIComponent).join('/'); }
+  function clSafe(name) {
+    var n = String(name || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._ ()\-]/g, '_').replace(/\s+/g, ' ').replace(/^[.\s]+/, '').trim().slice(0, 120);
+    return n || 'arquivo';
+  }
+  function clFree(names, name) {
+    var have = {}; names.forEach(function (n) { have[n.toLowerCase()] = 1; });
+    if (!have[name.toLowerCase()]) return name;
+    var m = name.match(/^(.*?)(\.[A-Za-z0-9]{1,8})?$/), base = m[1], ext = m[2] || '', i = 2;
+    while (have[(base + ' (' + i + ')' + ext).toLowerCase()]) i++;
+    return base + ' (' + i + ')' + ext;
+  }
+  function clKey(rel) { return cl.s.uid + (rel ? '/' + rel : ''); }
+  function clJoin(a, b) { return a ? a + '/' + b : b; }
+  function clParent(p) { var i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i); }
+  function clBase(p) { return p.slice(p.lastIndexOf('/') + 1); }
+
+  /* ---- storage ---- */
+  function clListDir(rel) {
+    var prefix = clKey(rel), out = [], off = 0;
+    function page() {
+      return clApi('POST', '/storage/v1/object/list/' + CL_BUCKET, { prefix: prefix, limit: 100, offset: off, sortBy: { column: 'name', order: 'asc' } }).then(function (r) {
+        r = r || []; out = out.concat(r); if (r.length === 100) { off += 100; return page(); } return out;
+      });
+    }
+    return page();
+  }
+  function clMap(rel, r) {
+    return { name: r.name, folder: r.id == null, size: (r.metadata && +r.metadata.size) || 0, mime: (r.metadata && r.metadata.mimetype) || '', ts: Date.parse(r.updated_at || r.created_at) || 0, path: clJoin(rel, r.name) };
+  }
+  function clWalk(rel, files, folders) {
+    return clListDir(rel).then(function (rs) {
+      var subs = [];
+      rs.forEach(function (r) {
+        var m = clMap(rel, r);
+        if (r.name === CL_KEEP) { files.push({ name: r.name, folder: false, size: 0, mime: '', ts: m.ts, path: m.path, keep: true }); return; }
+        if (m.folder) { folders.push(m.path); subs.push(m.path); } else files.push(m);
+      });
+      return Promise.all(subs.map(function (s) { return clWalk(s, files, folders); }));
+    });
+  }
+  function clCrawl() {
+    if (cl.idx) return Promise.resolve(cl.idx);
+    if (cl.idxP) return cl.idxP;
+    var files = [], folders = [], uid = cl.s.uid;
+    cl.idxP = clWalk('', files, folders).then(function () {
+      var used = 0; files.forEach(function (f) { used += f.size; });
+      if (!cl.s || cl.s.uid !== uid) return null;
+      cl.idx = { files: files, folders: folders, used: used }; cl.idxP = null; clMeter(); return cl.idx;
+    }, function (e) { cl.idxP = null; throw e; });
+    return cl.idxP;
+  }
+  function clDirty() { cl.idx = null; cl.idxP = null; }
+  function clAllUnder(rel) { var files = [], folders = []; return clWalk(rel, files, folders).then(function () { return files; }); }
+  function clUpload(rel, file, onprog) {
+    return clToken().then(function (t) {
+      return new Promise(function (res, rej) {
+        var x = new XMLHttpRequest();
+        x.open('POST', CL_URL + '/storage/v1/object/' + CL_BUCKET + '/' + clEnc(clKey(rel)));
+        x.setRequestHeader('apikey', CL_KEY); x.setRequestHeader('Authorization', 'Bearer ' + t); x.setRequestHeader('x-upsert', 'false');
+        var fd = new FormData(); fd.append('cacheControl', '3600'); fd.append('', file);
+        if (onprog && x.upload) x.upload.onprogress = function (e) { if (e.lengthComputable) onprog(e.loaded / e.total); };
+        x.onload = function () {
+          if (x.status >= 200 && x.status < 300) return res();
+          var j = null; try { j = JSON.parse(x.responseText); } catch (e) {}
+          var er = new Error((j && (j.message || j.error)) || ('erro ' + x.status)); er.status = x.status; er.code = (j && (j.error || j.statusCode)) || ''; rej(er);
+        };
+        x.onerror = function () { var er = new Error('net'); er.net = true; rej(er); };
+        x.send(fd);
+      });
+    });
+  }
+  function clMoveKey(from, to) { return clApi('POST', '/storage/v1/object/move', { bucketId: CL_BUCKET, sourceKey: clKey(from), destinationKey: clKey(to) }); }
+  function clRemoveKeys(paths) {
+    var chunks = [], i; for (i = 0; i < paths.length; i += 50) chunks.push(paths.slice(i, i + 50));
+    var p = Promise.resolve();
+    chunks.forEach(function (c) { p = p.then(function () { return clApi('DELETE', '/storage/v1/object/' + CL_BUCKET, { prefixes: c.map(clKey) }); }); });
+    return p;
+  }
+  function clSign(rel, dl) {
+    return clApi('POST', '/storage/v1/object/sign/' + CL_BUCKET + '/' + clEnc(clKey(rel)), { expiresIn: 600 }).then(function (j) {
+      var u = j && (j.signedURL || j.signedUrl); if (!u) throw new Error('não foi possível gerar o link');
+      if (u.indexOf('http') !== 0) u = CL_URL + '/storage/v1' + (u.charAt(0) === '/' ? '' : '/') + u;
+      return u + (dl ? (u.indexOf('?') < 0 ? '?' : '&') + 'download=' + encodeURIComponent(dl) : '');
+    });
+  }
+  function clCat(mime, name) {
+    var k = drvKind(mime || cfMime({ type: '', name: name }));
+    if (k === 'image') return 'Fotos'; if (k === 'video') return 'Videos';
+    if (k === 'pdf' || k === 'doc' || k === 'sheet' || k === 'slide') return 'Documentos';
+    return 'Outros';
+  }
+
+  /* ---- abrir / fechar ---- */
+  function cmdCloud() {
+    say('dim', 'abrindo o Emrys Cloud…');
+    if (cl.el) return;
+    var el = h('section', 'drv cfr cld'); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Emrys Cloud');
+    document.body.appendChild(el); cl.el = el; cl.path = ''; cl.q = ''; cl.msg = ''; cl.items = []; cl.idx = null; cl.idxP = null; cl.pv = null;
+    try { inp.blur(); } catch (e) {}
+    cl.s = clLoadS();
+    if (CL_HASH) return clFromLink();
+    if (cl.s) clEnter(); else { cl.view = 'auth'; clRender(); }
+  }
+  function clClose() {
+    clViewClose(); if (cl.el) { cl.el.remove(); cl.el = null; }
+    try { if (window.matchMedia('(pointer: fine)').matches) inp.focus({ preventScroll: true }); } catch (e) {}
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !cl.el) return;
+    if (document.querySelector('.cfr-sheet')) { cfSheetClose(); return; }
+    if (cl.pv) clViewClose(); else clClose();
+  });
+  function clFromLink() {
+    var L = CL_HASH; CL_HASH = null;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    if (L.err) { cl.view = 'auth'; cl.msg = /expired|invalid/i.test(L.err) ? 'o link expirou ou já foi usado. peça outro.' : L.err; return clRender(); }
+    clSaveS({ at: L.at, rt: L.rt, exp: L.exp, uid: '', email: '' });
+    clReq('GET', '/auth/v1/user', undefined, { token: L.at }).then(function (u) {
+      var s = cl.s; s.uid = u.id; s.email = u.email; clSaveS(s);
+      if (L.type === 'recovery') { cl.view = 'newpass'; clRender(); } else clEnter();
+    }).catch(function (e) { clSaveS(null); cl.view = 'auth'; cl.msg = clMsg(e); clRender(); });
+  }
+  function clEnter() {
+    cl.view = 'browse'; cl.path = ''; cl.msg = ''; clRender();
+    clToken().then(function () { return clListDir(''); }).then(function (rs) {
+      if (rs.length) return;
+      return Promise.all(CL_BASE.map(function (n) { return clUpload(n + '/' + CL_KEEP, new File([], CL_KEEP, { type: 'application/octet-stream' })).catch(function () {}); }));
+    }).then(function () { clLoad(); clCrawl().catch(function () {}); }).catch(function (e) { if (!e.auth) { cl.msg = clMsg(e); clList(); } });
+  }
+  function clGoAuth() { if (cl.el) { cl.view = 'auth'; clRender(); } }
+
+  /* ---- telas de acesso ---- */
+  function clShell() {
+    var el = cl.el; el.textContent = '';
+    var top = h('header', 'drv-top');
+    var back = cBtn('up', '', function () {
+      if (cl.view === 'browse' && (cl.q || cl.path)) { if (cl.q) { cl.q = ''; var i = el.querySelector('.drv-search input'); if (i) i.value = ''; } else cl.path = clParent(cl.path); clLoad(); }
+      else if (cl.view === 'recover' || cl.view === 'reset' || cl.view === 'verify') { cl.view = 'auth'; cl.msg = ''; clRender(); }
+      else clClose();
+    }, 'drv-ib', 'voltar');
+    var ttl = h('div', 'drv-title'); ttl.append(cIco('cloud'), h('span', null, 'Emrys Cloud'));
+    top.append(back, ttl, cBtn('x', '', clClose, 'drv-ib', 'fechar'));
+    el.append(top, h('div', 'drv-orn', '✦'));
+    var body = h('div', 'drv-body'); el.appendChild(body); return body;
+  }
+  function clInput(type, ph, ac) { var i = h('input', 'cld-in'); i.type = type; i.placeholder = ph; i.autocomplete = ac || 'off'; i.autocapitalize = 'off'; i.spellcheck = false; if (type === 'email') i.inputMode = 'email'; return i; }
+  function clForm(card, fields, label, icon, run) {
+    var f = h('form', 'cld-form'), msg = h('p', 'drv-p ' + (cl.ok ? '' : 'err')); msg.setAttribute('role', 'status');
+    if (cl.msg) { msg.textContent = cl.msg; if (cl.good) msg.className = 'drv-p'; }
+    cl.msg = ''; cl.good = false;
+    fields.forEach(function (x) { f.appendChild(x); });
+    var go = cBtn(icon, label, function () {}, 'pri big'); go.type = 'submit'; f.appendChild(go);
+    f.addEventListener('submit', function (e) {
+      e.preventDefault(); if (cl.busy) return; msg.textContent = ''; msg.className = 'drv-p err';
+      var say2 = function (t, good) { msg.textContent = t; msg.className = 'drv-p' + (good ? '' : ' err'); };
+      cl.busy = true; go.disabled = true;
+      Promise.resolve().then(function () { return run(say2); }).catch(function (er) { say2(clMsg(er)); }).then(function () { cl.busy = false; go.disabled = false; });
+    });
+    card.append(f, msg); return f;
+  }
+  function clRender() {
+    if (!cl.el) return;
+    if (cl.view === 'browse') return clBrowseShell();
+    var body = clShell(), card = h('div', 'drv-card center'); body.appendChild(card);
+    var link = function (t, fn) { var b = h('button', 'drv-link', t); b.type = 'button'; b.addEventListener('click', fn); return b; };
+    if (cl.view === 'auth') {
+      var mode = cl.mode || 'in';
+      card.appendChild(h('h2', null, mode === 'in' ? 'Entrar na nuvem' : 'Criar conta'));
+      card.appendChild(h('p', 'drv-p', 'Sua conta da nuvem é separada do login do Emrys. Os arquivos ficam privados, só você os vê.'));
+      var tabs = h('div', 'cld-tabs');
+      [['in', 'entrar'], ['up', 'criar conta']].forEach(function (t) { var b = h('button', 'drv-tab' + (mode === t[0] ? ' on' : ''), t[1]); b.type = 'button'; b.addEventListener('click', function () { cl.mode = t[0]; cl.msg = ''; clRender(); }); tabs.appendChild(b); });
+      card.appendChild(tabs);
+      var em = clInput('email', 'e-mail', 'email'), pw = clInput('password', 'senha', mode === 'in' ? 'current-password' : 'new-password'), pw2 = clInput('password', 'repita a senha', 'new-password');
+      if (cl.email) em.value = cl.email;
+      var fields = mode === 'in' ? [em, pw] : [em, pw, pw2];
+      clForm(card, fields, mode === 'in' ? 'entrar' : 'criar conta', 'key', function (say2) {
+        var e = em.value.trim().toLowerCase(), p = pw.value; cl.email = e;
+        if (!/^\S+@\S+\.\S+$/.test(e)) return say2('digite um e-mail válido.');
+        if (mode === 'in') {
+          if (!p) return say2('digite a senha.');
+          return clReq('POST', '/auth/v1/token?grant_type=password', { email: e, password: p }).then(function (j) { clSaveS(clFromAuth(j)); clEnter(); });
+        }
+        if (p.length < 8) return say2('use pelo menos 8 caracteres na senha.');
+        if (p !== pw2.value) return say2('as senhas não são iguais.');
+        return clReq('POST', '/auth/v1/signup', { email: e, password: p }).then(function (j) {
+          if (j && j.access_token) { clSaveS(clFromAuth(j)); return clEnter(); }
+          if (j && j.identities && j.identities.length === 0) return say2('já existe uma conta com esse e-mail. use “entrar”.');
+          cl.view = 'verify'; cl.msg = 'enviamos um e-mail para ' + e + '. toque no link dele ou digite o código, se houver.'; cl.good = true; clRender();
+        });
+      });
+      var alt = h('div', 'drv-alt');
+      if (mode === 'in') alt.appendChild(link('esqueci a senha', function () { cl.view = 'recover'; cl.msg = ''; clRender(); }));
+      card.appendChild(alt);
+    } else if (cl.view === 'verify') {
+      card.appendChild(h('h2', null, 'Confirme o e-mail'));
+      card.appendChild(h('p', 'drv-p', 'Abra o e-mail e toque no link (ele leva de volta ao Emrys). Se o e-mail trouxer um código, digite aqui.'));
+      var code = clInput('text', 'código do e-mail', 'one-time-code'); code.inputMode = 'numeric';
+      clForm(card, [code], 'confirmar', 'key', function (say2) {
+        if (!code.value.trim()) return say2('digite o código.');
+        return clReq('POST', '/auth/v1/verify', { type: 'signup', email: cl.email, token: code.value.trim() }).then(function (j) { clSaveS(clFromAuth(j)); clEnter(); });
+      });
+      var a2 = h('div', 'drv-alt');
+      a2.append(link('reenviar e-mail', function () { clReq('POST', '/auth/v1/resend', { type: 'signup', email: cl.email }).then(function () { cl.msg = 'e-mail reenviado.'; cl.good = true; clRender(); }, function (e) { cl.msg = clMsg(e); clRender(); }); }),
+        link('já confirmei, entrar', function () { cl.view = 'auth'; cl.mode = 'in'; cl.msg = ''; clRender(); }));
+      card.appendChild(a2);
+    } else if (cl.view === 'recover') {
+      card.appendChild(h('h2', null, 'Recuperar a senha'));
+      card.appendChild(h('p', 'drv-p', 'Vamos enviar um e-mail com um link (ou código) para criar uma nova senha.'));
+      var e3 = clInput('email', 'e-mail da conta', 'email'); if (cl.email) e3.value = cl.email;
+      clForm(card, [e3], 'enviar e-mail', 'key', function (say2) {
+        var e = e3.value.trim().toLowerCase(); if (!/^\S+@\S+\.\S+$/.test(e)) return say2('digite um e-mail válido.'); cl.email = e;
+        return clReq('POST', '/auth/v1/recover?redirect_to=' + encodeURIComponent(location.origin + location.pathname), { email: e }).then(function () { cl.view = 'reset'; cl.msg = 'se existir uma conta com esse e-mail, enviamos as instruções.'; cl.good = true; clRender(); });
+      });
+      card.appendChild(h('div', 'drv-alt')).appendChild(link('tenho um código', function () { cl.view = 'reset'; cl.msg = ''; clRender(); }));
+    } else if (cl.view === 'reset') {
+      card.appendChild(h('h2', null, 'Nova senha'));
+      card.appendChild(h('p', 'drv-p', 'Toque no link do e-mail (abre o Emrys já pronto para a nova senha) ou digite aqui o código recebido.'));
+      var e4 = clInput('email', 'e-mail da conta', 'email'); if (cl.email) e4.value = cl.email;
+      var c4 = clInput('text', 'código do e-mail', 'one-time-code'); c4.inputMode = 'numeric';
+      var n1 = clInput('password', 'nova senha', 'new-password'), n2 = clInput('password', 'repita a nova senha', 'new-password');
+      clForm(card, [e4, c4, n1, n2], 'trocar a senha', 'key', function (say2) {
+        var e = e4.value.trim().toLowerCase(); if (!/^\S+@\S+\.\S+$/.test(e)) return say2('digite o e-mail.'); if (!c4.value.trim()) return say2('digite o código.');
+        if (n1.value.length < 8) return say2('use pelo menos 8 caracteres.'); if (n1.value !== n2.value) return say2('as senhas não são iguais.');
+        return clReq('POST', '/auth/v1/verify', { type: 'recovery', email: e, token: c4.value.trim() }).then(function (j) {
+          var s = clFromAuth(j); clSaveS(s);
+          return clReq('PUT', '/auth/v1/user', { password: n1.value }, { token: s.at });
+        }).then(function () { clEnter(); });
+      });
+    } else if (cl.view === 'newpass') {
+      card.appendChild(h('h2', null, 'Criar nova senha'));
+      card.appendChild(h('p', 'drv-p', 'Link confirmado. Escolha a nova senha da sua conta' + (cl.s && cl.s.email ? ' (' + cl.s.email + ')' : '') + '.'));
+      var m1 = clInput('password', 'nova senha', 'new-password'), m2 = clInput('password', 'repita a nova senha', 'new-password');
+      clForm(card, [m1, m2], 'salvar nova senha', 'key', function (say2) {
+        if (m1.value.length < 8) return say2('use pelo menos 8 caracteres.'); if (m1.value !== m2.value) return say2('as senhas não são iguais.');
+        return clApi('PUT', '/auth/v1/user', { password: m1.value }).then(function () { clEnter(); });
+      });
+    }
+  }
+  function clLogout() {
+    var s = cl.s, go = function () { clSaveS(null); cl.items = []; cl.idx = null; cl.idxP = null; cl.view = 'auth'; cl.mode = 'in'; cl.msg = 'você saiu da nuvem.'; cl.good = true; clViewClose(); clRender(); };
+    if (s && s.at) clReq('POST', '/auth/v1/logout?scope=local', undefined, { token: s.at }).then(go, go); else go();
+  }
+
+  /* ---- navegador de arquivos ---- */
+  CI.cloud = SVG('<path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5z"/>');
+  function clBrowseShell() {
+    var el = cl.el, body = clShell();
+    var meter = h('div', 'cfr-meter'); meter.id = 'cl-meter'; body.appendChild(meter);
+    var sb = h('form', 'drv-search'); sb.setAttribute('role', 'search');
+    var si = h('input'); si.type = 'search'; si.placeholder = 'pesquisar na nuvem'; si.autocomplete = 'off'; si.spellcheck = false; si.value = cl.q;
+    sb.append(dIco('search'), si); sb.addEventListener('submit', function (e) { e.preventDefault(); si.blur(); });
+    var tm = 0;
+    si.addEventListener('input', function () { cl.q = si.value.trim(); clearTimeout(tm); tm = setTimeout(clLoad, 250); });
+    body.appendChild(sb);
+    var bar = h('div', 'cfr-bar2');
+    var fi = h('input'); fi.type = 'file'; fi.multiple = true; fi.hidden = true; fi.id = 'cl-file';
+    fi.addEventListener('change', function () { var l = Array.prototype.slice.call(fi.files || []); fi.value = ''; if (l.length) clUploadFiles(l); });
+    bar.append(fi, cBtn('backup', 'enviar', function () { fi.click(); }, 'pri'), cBtn('folderp', 'pasta', clNewFolder), cBtn('cloud', 'atualizar', function () { clDirty(); clLoad(); clCrawl().catch(function () {}); }));
+    body.appendChild(bar);
+    var cr = h('div', 'cfr-row2'), cc = h('div', 'drv-crumbs'); cc.id = 'cl-crumbs';
+    var so = h('select', 'nts-sel cfr-sort'); so.setAttribute('aria-label', 'Ordenar');
+    [['name', 'nome'], ['date', 'data'], ['size', 'tamanho']].forEach(function (o) { var op = h('option', null, o[1]); op.value = o[0]; so.appendChild(op); });
+    so.value = cl.sort; so.addEventListener('change', function () { cl.sort = so.value; clList(); });
+    cr.append(cc, so); body.appendChild(cr);
+    var st = h('div', 'cfr-status'); st.id = 'cl-status'; body.appendChild(st);
+    var ls = h('div', 'drv-list'); ls.id = 'cl-list'; body.appendChild(ls);
+    var ft = h('footer', 'drv-foot'); ft.id = 'cl-foot'; el.appendChild(ft);
+    var who = h('span', 'drv-who'); who.appendChild(h('b', null, (cl.s && cl.s.email) || 'conectado')); who.appendChild(h('i', null, 'arquivos privados · só você acessa'));
+    ft.append(who, cBtn('key', 'sair', clLogout, 'drv-quiet'));
+    clMeter(); clList();
+  }
+  function clMeter() {
+    var n = $('cl-meter'); if (!n) return; n.textContent = '';
+    var used = cl.idx ? cl.idx.used : null, pct = used == null ? 0 : Math.min(100, used / CL_QUOTA * 100);
+    var bar = h('div', 'cfr-meterbar'), fill = h('i'); fill.style.width = (used ? Math.max(pct, 1.5) : 0) + '%'; if (pct >= 80) fill.className = 'hot'; bar.appendChild(fill); n.appendChild(bar);
+    n.appendChild(h('div', 'cfr-mt', used == null ? 'calculando o espaço usado…' : 'Nuvem: ' + drvSize(used) + ' de ' + drvSize(CL_QUOTA) + ' (' + (pct < 1 ? '<1' : Math.round(pct)) + '%) · máx. ' + drvSize(CL_MAX) + ' por arquivo'));
+    if (pct >= 95) n.appendChild(h('div', 'cfr-warn err', 'o espaço da nuvem está quase no fim (' + Math.round(pct) + '%). novos envios podem falhar. apague arquivos ou aumente o plano.'));
+    else if (pct >= 80) n.appendChild(h('div', 'cfr-warn', 'o espaço está acabando (' + Math.round(pct) + '% usado).'));
+  }
+  function clNote(t) { cl.msg = t; var st = $('cl-status'); if (st) { st.textContent = t; st.className = 'cfr-status' + (t ? ' show' : ''); } }
+  function clSorted(list) {
+    return list.sort(function (a, b) {
+      if (a.folder !== b.folder) return a.folder ? -1 : 1;
+      if (cl.sort === 'date') return (b.ts || 0) - (a.ts || 0);
+      if (cl.sort === 'size') return (b.size || 0) - (a.size || 0) || a.name.localeCompare(b.name, 'pt', { numeric: true });
+      return a.name.localeCompare(b.name, 'pt', { numeric: true, sensitivity: 'base' });
+    });
+  }
+  function clLoad() {
+    var my = ++cl.req, q = norm(cl.q);
+    cl.loading = true; cl.items = []; clList();
+    var p;
+    if (q) p = clCrawl().then(function (ix) {
+      var r = ix.files.filter(function (f) { return !f.keep && norm(f.name).indexOf(q) !== -1; });
+      ix.folders.forEach(function (fp) { if (norm(clBase(fp)).indexOf(q) !== -1) r.push({ name: clBase(fp), folder: true, size: 0, mime: '', ts: 0, path: fp }); });
+      return r;
+    });
+    else p = clListDir(cl.path).then(function (rs) { return rs.filter(function (r) { return r.name !== CL_KEEP; }).map(function (r) { return clMap(cl.path, r); }); });
+    p.then(function (list) { if (my !== cl.req) return; cl.loading = false; cl.items = list; clList(); }).catch(function (e) {
+      if (my !== cl.req) return; cl.loading = false; if (e.auth) return; cl.msg = clMsg(e); clList();
+    });
+  }
+  function clList() {
+    var box = $('cl-list'); if (!box) return;
+    var cr = $('cl-crumbs'); cr.textContent = '';
+    if (cl.q) cr.appendChild(h('span', 'drv-cur', 'busca: “' + cl.q + '”'));
+    else {
+      var parts = [{ p: '', n: 'Nuvem' }], acc = '';
+      cl.path.split('/').filter(Boolean).forEach(function (s) { acc = clJoin(acc, s); parts.push({ p: acc, n: s }); });
+      parts.forEach(function (x, k) {
+        if (k) cr.appendChild(h('span', 'drv-sep', '›'));
+        var last = k === parts.length - 1, b = h(last ? 'span' : 'button', last ? 'drv-cur' : 'drv-crumb', x.n);
+        if (!last) { b.type = 'button'; b.addEventListener('click', function () { cl.path = x.p; clLoad(); }); }
+        cr.appendChild(b);
+      });
+      cr.scrollLeft = cr.scrollWidth;
+    }
+    var st = $('cl-status'); st.textContent = cl.msg || ''; st.className = 'cfr-status' + (cl.msg ? ' show' : '');
+    box.textContent = '';
+    var list = clSorted(cl.items.slice());
+    list.forEach(function (n, i) {
+      var row = h('div', 'drv-row cfr-item'); row.style.setProperty('--i', Math.min(i, 12));
+      var main = h('button', 'cfr-main'); main.type = 'button';
+      var kind = n.folder ? 'folder' : drvKind(n.mime || cfMime({ type: '', name: n.name }));
+      var ic = cIco(kind); ic.classList.add('k-' + kind, 'cfr-ic');
+      var tx = h('span', 'drv-tx'); tx.appendChild(h('span', 'drv-name', n.name));
+      var meta = n.folder ? 'pasta' : [cfFmt({ type: 'file', name: n.name, mime: n.mime }), drvSize(n.size), n.ts ? fmt(n.ts) : ''].filter(Boolean).join(' · ');
+      if (cl.q) meta += ' · em ' + (clParent(n.path) || 'Nuvem').split('/').join(' › ');
+      tx.appendChild(h('span', 'drv-meta', meta)); main.append(ic, tx);
+      main.addEventListener('click', function () { if (n.folder) { cl.path = n.path; cl.q = ''; var si = cl.el.querySelector('.drv-search input'); if (si) si.value = ''; clLoad(); } else clView(n, list); });
+      row.append(main, cBtn('more', '', function () { clItemMenu(n); }, 'cfr-more', 'ações de ' + n.name));
+      box.appendChild(row);
+    });
+    if (cl.loading) box.appendChild(h('div', 'drv-state', cl.q ? 'procurando…' : 'carregando…'));
+    else if (!list.length && !cl.msg) box.appendChild(h('div', 'drv-state', cl.q ? 'nada encontrado com esse nome.' : 'pasta vazia. toque em “enviar”.'));
+  }
+
+  /* ---- enviar ---- */
+  function clUploadFiles(files) {
+    if (cl.busy) return; cl.busy = true;
+    var rel = cl.q ? '' : cl.path, i = 0, ok = 0, fail = 0, stop = '', why = '', used = cl.idx ? cl.idx.used : 0;
+    var names = {};
+    function dirNames(d) { return names[d] ? Promise.resolve(names[d]) : clListDir(d).then(function (rs) { return (names[d] = rs.map(function (r) { return r.name; })); }); }
+    function next() {
+      if (i >= files.length || stop) {
+        cl.busy = false; clDirty(); clCrawl().catch(function () {}); clLoad();
+        setTimeout(function () { clNote((ok ? ok + (ok === 1 ? ' arquivo enviado' : ' arquivos enviados') : 'nada foi enviado') + (fail ? ' · ' + fail + ' falharam' : '') + (stop ? ' · ' + stop : '') + (why ? ' · ' + why : '') + '.'); }, 0); return;
+      }
+      var f = files[i++], pos = i + ' de ' + files.length;
+      if (f.size > CL_MAX) { fail++; why = '“' + f.name + '” tem ' + drvSize(f.size) + ' e passa do limite de ' + drvSize(CL_MAX) + ' por arquivo do plano gratuito'; return next(); }
+      if (cl.idx && used + f.size > CL_QUOTA) { stop = 'o espaço do plano gratuito (' + drvSize(CL_QUOTA) + ') não comporta mais arquivos'; fail += files.length - i + 1; return next(); }
+      var dir = rel || clCat(f.type, f.name), nm = clSafe(f.name);
+      clNote('enviando ' + pos + ': ' + f.name + ' · 0%');
+      dirNames(dir).then(function (ns) {
+        nm = clFree(ns, nm);
+        return clUpload(clJoin(dir, nm), f, function (p) { clNote('enviando ' + pos + ': ' + f.name + ' · ' + Math.round(p * 100) + '%'); });
+      }).then(function () { ok++; used += f.size; if (names[dir]) names[dir].push(nm); }, function (e) { if (e.auth) { stop = 'sessão expirada'; return; } fail++; stop = /quota|limit|insufficient/i.test(e.message + ' ' + (e.code || '')) ? clMsg(e) : stop; if (!stop) why = clMsg(e); }).then(next);
+    }
+    next();
+  }
+  function clNewFolder() {
+    var v = clSafe(window.prompt('Nome da nova pasta') || ''); if (!v || v === 'arquivo' && false) return;
+    var rel = cl.q ? '' : cl.path, p = clJoin(rel, v);
+    clNote('criando pasta…');
+    clListDir(rel).then(function (rs) { if (rs.some(function (r) { return r.name.toLowerCase() === v.toLowerCase(); })) throw new Error('já existe um item com esse nome aqui.'); return clUpload(clJoin(p, CL_KEEP), new File([], CL_KEEP, { type: 'application/octet-stream' })); })
+      .then(function () { cl.q = ''; cl.path = rel; clDirty(); clNote(''); clLoad(); clCrawl().catch(function () {}); }).catch(function (e) { clNote(clMsg(e)); });
+  }
+
+  /* ---- renomear, mover, excluir ---- */
+  function clMovePath(n, destPath) {   /* move arquivo ou pasta inteira */
+    if (!n.folder) return clMoveKey(n.path, destPath);
+    return clAllUnder(n.path).then(function (fs) {
+      var i = 0, tot = fs.length;
+      function nx() {
+        if (i >= fs.length) return;
+        var f = fs[i++]; clNote('movendo ' + i + ' de ' + tot + '…');
+        return clMoveKey(f.path, destPath + f.path.slice(n.path.length)).then(nx);
+      }
+      return nx();
+    });
+  }
+  function clRename(n) {
+    var v = clSafe(window.prompt('Novo nome (acentos e símbolos especiais são simplificados)', n.name) || ''); if (!v || v === n.name) return;
+    var dest = clJoin(clParent(n.path), v);
+    clListDir(clParent(n.path)).then(function (rs) {
+      if (rs.some(function (r) { return r.name.toLowerCase() === v.toLowerCase() && r.name !== n.name; })) throw new Error('já existe um item com esse nome aqui.');
+      return clMovePath(n, dest);
+    }).then(function () { clDirty(); clNote(''); clLoad(); clCrawl().catch(function () {}); if (cl.pv && cl.pv.n.path === n.path) clViewClose(); }).catch(function (e) { clNote(clMsg(e)); clDirty(); clLoad(); });
+  }
+  function clDelete(n) {
+    return (n.folder ? clAllUnder(n.path) : Promise.resolve([n])).then(function (fs) {
+      var real = fs.filter(function (f) { return !f.keep; }), tot = real.reduce(function (s, f) { return s + f.size; }, 0);
+      var msg = n.folder ? 'Apagar a pasta “' + n.name + '” com ' + real.length + (real.length === 1 ? ' arquivo' : ' arquivos') + ' (' + drvSize(tot) + ')? Não dá para desfazer.' : 'Apagar “' + n.name + '”? Não dá para desfazer.';
+      if (!window.confirm(msg)) return false;
+      clNote('apagando…');
+      return clRemoveKeys(fs.map(function (f) { return f.path; })).then(function () { clDirty(); clNote(''); clLoad(); clCrawl().catch(function () {}); return true; });
+    }).catch(function (e) { clNote(clMsg(e)); return false; });
+  }
+  function clMoveDlg(n) {
+    clCrawl().then(function (ix) {
+      var bad = function (p) { return n.folder && (p === n.path || p.indexOf(n.path + '/') === 0); };
+      var set = {}; CL_BASE.forEach(function (b) { set[b] = 1; }); ix.folders.forEach(function (f) { set[f] = 1; });
+      var opts = [{ p: '', l: 'Nuvem (raiz)' }].concat(Object.keys(set).filter(function (p) { return !bad(p); }).sort(function (a, b) { return a.localeCompare(b, 'pt'); }).map(function (p) { return { p: p, l: p.split('/').join(' › ') }; }));
+      clSheet('Mover “' + n.name + '” para…', opts.filter(function (o) { return o.p !== clParent(n.path); }).map(function (o) {
+        return { icon: 'folder', label: o.l, fn: function () {
+          clListDir(o.p).then(function (rs) {
+            if (rs.some(function (r) { return r.name.toLowerCase() === n.name.toLowerCase(); })) throw new Error('já existe um item com esse nome em ' + o.l + '.');
+            return clMovePath(n, clJoin(o.p, n.name));
+          }).then(function () { clDirty(); clNote(''); clLoad(); clCrawl().catch(function () {}); if (cl.pv) clViewClose(); }).catch(function (e) { clNote(clMsg(e)); clDirty(); clLoad(); });
+        } };
+      }));
+    }).catch(function (e) { clNote(clMsg(e)); });
+  }
+  function clSheet(title, acts) {
+    cfSheetClose();
+    var bg = h('div', 'cfr-sheet'), box = h('div', 'cfr-sheetbox');
+    box.appendChild(h('div', 'cfr-sheettitle', title));
+    acts.forEach(function (a) { box.appendChild(cBtn(a.icon, a.label, function () { cfSheetClose(); a.fn(); }, a.danger ? 'danger' : '')); });
+    box.appendChild(cBtn('', 'cancelar', cfSheetClose, 'cfr-cancel'));
+    bg.appendChild(box); bg.addEventListener('click', function (e) { if (e.target === bg) cfSheetClose(); });
+    cl.el.appendChild(bg);
+  }
+  function clItemMenu(n) {
+    var a = [];
+    if (!n.folder) a.push({ icon: 'open', label: 'abrir', fn: function () { clView(n, cl.items); } }, { icon: 'down', label: 'baixar', fn: function () { clDownload(n); } });
+    a.push({ icon: 'edit', label: 'renomear', fn: function () { clRename(n); } }, { icon: 'move', label: 'mover', fn: function () { clMoveDlg(n); } }, { icon: 'trash', label: 'excluir', danger: true, fn: function () { clDelete(n); } });
+    clSheet(n.name, a);
+  }
+  function clDownload(n) {
+    clNote('preparando “' + n.name + '”…');
+    clSign(n.path, n.name).then(function (u) {
+      var a = document.createElement('a'); a.href = u; a.download = n.name; a.rel = 'noopener'; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 2000);
+      clNote('baixando: ' + n.name + '. se o iPhone não baixou, abra o arquivo e use “compartilhar”.');
+    }).catch(function (e) { clNote(clMsg(e)); });
+  }
+
+  /* ---- visualizador ---- */
+  function clViewClose() { if (!cl.pv) return; var v = cl.pv.el.querySelector('video,audio'); if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} } cl.pv.el.remove(); cl.pv = null; }
+  function clView(n, siblings) {
+    clViewClose();
+    var mime = n.mime || cfMime({ type: '', name: n.name }), kind = drvKind(mime), pv = { n: n, el: h('div', 'drv-pv') }; cl.pv = pv;
+    var media = (siblings || []).filter(function (x) { if (x.folder) return false; var k = drvKind(x.mime || cfMime({ type: '', name: x.name })); return k === 'image' || k === 'video'; });
+    var idx = media.findIndex(function (x) { return x.path === n.path; });
+    var top = h('header', 'drv-top'); top.appendChild(cBtn('up', '', clViewClose, 'drv-ib', 'voltar'));
+    top.appendChild(h('div', 'drv-pvname', n.name));
+    if (idx > -1 && media.length > 1) top.append(cBtn('up', '', function () { clView(media[(idx - 1 + media.length) % media.length], media); }, 'drv-ib', 'anterior'), cBtn('next', '', function () { clView(media[(idx + 1) % media.length], media); }, 'drv-ib', 'próximo'));
+    pv.el.appendChild(top);
+    var stage = h('div', 'drv-stage'); stage.appendChild(h('div', 'drv-state', 'abrindo…')); pv.el.appendChild(stage);
+    var info = h('dl', 'drv-info');
+    [['nome', n.name], ['formato', cfFmt({ type: 'file', name: n.name, mime: mime })], ['tamanho', drvSize(n.size)], ['enviado', n.ts ? fmt(n.ts) : '—'], ['pasta', clParent(n.path).split('/').join(' › ') || 'Nuvem']].forEach(function (r) { info.append(h('dt', null, r[0]), h('dd', null, r[1])); });
+    var acts = h('div', 'drv-acts'), note = h('p', 'drv-p');
+    acts.append(cBtn('down', 'baixar', function () { clDownload(n); }, 'pri'), cBtn('edit', 'renomear', function () { clRename(n); }), cBtn('move', 'mover', function () { clMoveDlg(n); }),
+      cBtn('trash', 'excluir', function () { clDelete(n).then(function (d) { if (d) clViewClose(); }); }, 'danger'));
+    pv.el.append(info, acts, note); cl.el.appendChild(pv.el);
+    clSign(n.path).then(function (u) {
+      if (cl.pv !== pv) return; stage.textContent = '';
+      if (kind === 'image') { var im = h('img', 'drv-img'); im.src = u; im.alt = n.name; im.addEventListener('click', function () { im.classList.toggle('full'); }); im.onerror = function () { stage.textContent = ''; stage.appendChild(h('div', 'drv-state', 'este formato de imagem não abre aqui. use “baixar”.')); }; stage.appendChild(im); }
+      else if (kind === 'video' || kind === 'audio') { var v = h(kind, 'drv-media'); v.controls = true; v.setAttribute('playsinline', ''); v.preload = 'metadata'; v.src = u; v.onerror = function () { note.textContent = 'este formato não toca aqui. baixe o arquivo e abra em outro app.'; note.className = 'drv-p err'; }; stage.appendChild(v); }
+      else if (kind === 'pdf') { var fr = h('iframe', 'drv-frame'); fr.src = u; fr.title = n.name; stage.appendChild(fr); acts.insertBefore(cBtn('out', 'tela cheia', function () { window.open(u, '_blank'); }), acts.firstChild); }
+      else if ((mime.indexOf('text/') === 0 || /json|xml/.test(mime)) && n.size <= 2e6) fetch(u).then(function (r) { return r.text(); }).then(function (t) { if (cl.pv !== pv) return; var pre = h('pre', 'drv-text'); pre.textContent = t; stage.appendChild(pre); });
+      else { stage.appendChild(h('div', 'drv-state', /word|officedocument|msword|presentation|sheet/.test(mime) ? 'documentos do Office não abrem aqui. use “baixar” e abra no app do iPhone.' : 'sem pré-visualização para este formato. use “baixar”.')); }
+      if (navigator.canShare && navigator.share) acts.insertBefore(cBtn('share', 'compartilhar', function () {
+        note.textContent = 'preparando…'; note.className = 'drv-p';
+        fetch(u).then(function (r) { return r.blob(); }).then(function (b) { var f = new File([b], n.name, { type: mime }); note.textContent = ''; if (navigator.canShare({ files: [f] })) return navigator.share({ files: [f] }); note.textContent = 'o iPhone não aceitou compartilhar este arquivo. use “baixar”.'; }).catch(function () { note.textContent = ''; });
+      }), acts.children[1]);
+    }).catch(function (e) { if (cl.pv !== pv) return; stage.textContent = ''; stage.appendChild(h('div', 'drv-state err', clMsg(e))); });
+  }
+
   var CMDS = [
     { n: 'ajuda', al: ['help', '?'], u: '/ajuda', d: 'mostra esta lista', run: cmdAjuda },
     { n: 'listar', al: ['ls', 'l'], u: '/listar [n|tudo]', d: 'últimos pensamentos (quantidade em /config)', run: cmdListar },
@@ -3079,6 +3636,7 @@ body {
     { n: 'ping', al: ['latencia'], u: '/ping [site]', d: 'testa a latência até um site', run: cmdPing },
     { n: 'site', al: ['up', 'online'], u: '/site <endereço...>', d: 'verifica se sites estão no ar', run: cmdSite },
     { n: 'notas', al: ['nota', 'notes', 'bloco'], u: '/notas', d: 'bloco de notas (pastas, fixar, tarefas)', run: cmdNotas },
+    { n: 'nuvem', al: ['cloud', 'emryscloud'], u: '/nuvem', d: 'Emrys Cloud: seus arquivos privados na nuvem (Supabase)', run: cmdCloud },
     { n: 'cofre', al: ['arquivos', 'files', 'vault'], u: '/cofre', d: 'arquivos pessoais guardados neste aparelho', run: cmdCofre },
     { n: 'drive', al: ['gdrive'], u: '/drive', d: 'seus arquivos do Google Drive (somente leitura)', run: cmdDrive },
     { n: 'config', al: ['configurar', 'cfg', 'ajustes'], u: '/config', d: 'aparência e comportamento do programa', run: cmdConfig },
@@ -3303,6 +3861,9 @@ body {
       say('dim', 'nenhum pensamento guardado ainda. escreva o primeiro abaixo.');
     }
     gap();
+    var ql = document.createElement('div'); ql.className = 'ctl';
+    [['Notas', cmdNotas], ['Cofre', cmdCofre], ['Nuvem', cmdCloud], ['Drive', cmdDrive]].forEach(function (b) { ql.appendChild(mkBtn(b[0], b[1])); });
+    add(ql); gap();
     if (mode === 'cloud') say('ok', '● cofre privado ativo. seus pensamentos ficam guardados na sua conta, não neste aparelho.');
     else say('dim', '○ guardado só neste aparelho. use /backup para ter uma cópia.');
   }
@@ -3467,6 +4028,7 @@ body {
       welcome();
       inp.disabled = false;
       var dst = drvLoad(); if (dst.resume) { dst.resume = 0; drvSave(dst); cmdDrive(''); }
+      if (CL_HASH) cmdCloud();
       if (window.matchMedia('(pointer: fine)').matches) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
     });
   }
