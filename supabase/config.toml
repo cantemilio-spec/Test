@@ -1,0 +1,4 @@
+# A função confere o login do usuário por conta própria (veja functions/emrys-ai/handler.ts),
+# então o gateway não precisa validar o JWT (necessário com as chaves novas "sb_publishable_…").
+[functions.emrys-ai]
+verify_jwt = false
