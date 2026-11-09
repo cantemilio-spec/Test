@@ -513,7 +513,7 @@ body {
 .cfg .note { margin: 0; color: var(--dim); font-size: 0.85em; }
 .cfg .stack { display: grid; gap: 0.6rem; min-width: 0; }
 
-/* ---------- Google Drive (v1.20) ---------- */
+/* ---------- telas em tela cheia (Notas, Cofre, Nuvem) ---------- */
 .drv { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; background: #050403; color: var(--fg); font-family: var(--mono); font-size: 14px; line-height: 1.4;
   padding: env(safe-area-inset-top, 0) max(14px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0) max(14px, env(safe-area-inset-left, 0px)); animation: emrys-in 0.28s ease-out both; overscroll-behavior: contain; }
 .drv > * { width: 100%; max-width: 820px; margin-inline: auto; }
@@ -645,11 +645,66 @@ body {
 .drv-pv { box-sizing: border-box; }
 
 /* ---------- Emrys Cloud (v1.24) ---------- */
+/* ---------- Emrys Intelligence ---------- */
+.ai { overscroll-behavior: contain; }
+.ai-ttl { font-size: 1.2rem; min-width: 0; }
+.ai-ttl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-sub { display: flex; align-items: center; gap: 8px; padding: 6px 0; flex: none; min-height: 44px; }
+.ai-sub .drv-btn { min-height: 38px; padding: 0 10px; font-size: 0.85rem; }
+.ai-count { color: var(--dim); font-size: 0.78rem; }
+.ai-count:not(:empty)::before { content: '· '; }
+.ai-cur { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); font-size: 0.8rem; text-align: right; }
+.ai-msgs { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 12px; padding: 8px 0 12px; scroll-behavior: auto; }
+.ai-m { max-width: 90%; padding: 10px 12px; line-height: 1.55; overflow-wrap: anywhere; animation: drv-up 0.25s ease-out both; }
+.ai-m.u { align-self: flex-end; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); border-radius: 0; white-space: pre-wrap; }
+.ai-m.a { align-self: flex-start; border: 1px solid var(--line); background: #0b0906; width: auto; }
+.ai-txt { font-size: 0.95rem; }
+.ai-p { margin: 0 0 8px; } .ai-p:last-child { margin-bottom: 0; }
+.ai-list { margin: 0 0 8px; padding-left: 20px; } .ai-list li { margin: 2px 0; }
+.ai-txt code { padding: 1px 5px; background: #15110b; border: 1px solid var(--line); font-size: 0.88em; }
+.ai-txt strong { color: var(--accent); font-weight: 600; }
+.ai-code { margin: 8px 0; border: 1px solid var(--line); background: #070604; }
+.ai-codebar { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 2px 10px; border-bottom: 1px solid var(--line); font-size: 0.72rem; color: var(--dim); }
+.ai-code pre { margin: 0; padding: 10px; overflow-x: auto; font: inherit; font-size: 0.82rem; line-height: 1.5; white-space: pre; -webkit-overflow-scrolling: touch; }
+.ai-cp { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 8px; color: var(--dim); font-size: 0.75rem; }
+.ai-cp .drv-ico { width: 15px; height: 15px; color: currentColor; }
+.ai-cp:hover, .ai-cp:active { color: var(--accent); }
+.ai-act { display: flex; align-items: center; justify-content: space-between; margin: 6px -6px -4px; }
+.ai-time { color: var(--dim); font-size: 0.7rem; padding-right: 4px; }
+.ai-typing { display: flex; gap: 5px; padding: 14px 14px; }
+.ai-typing i { width: 6px; height: 6px; background: var(--accent); opacity: 0.35; animation: ai-dot 1.2s infinite ease-in-out; }
+.ai-typing i:nth-child(2) { animation-delay: 0.2s; } .ai-typing i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes ai-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.ai-err { align-self: stretch; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 10px 12px; border: 1px solid #7a3a30; color: #e8907f; font-size: 0.85rem; }
+.ai-empty { margin: auto; text-align: center; padding: 6vh 6px 2vh; max-width: 420px; }
+.ai-empty h2 { margin: 8px 0 6px; font-family: var(--display); font-weight: 400; font-size: 1.4rem; color: var(--accent); }
+.ai-empty p { margin: 0 0 14px; color: var(--dim); font-size: 0.85rem; }
+.ai-spark { display: inline-grid; place-items: center; width: 56px; height: 56px; border: 1px solid var(--line); } .ai-spark .drv-ico { width: 28px; height: 28px; }
+.ai-chips { display: flex; flex-direction: column; gap: 8px; }
+.ai-chip { padding: 11px 12px; border: 1px solid var(--line) !important; color: var(--fg); font-size: 0.85rem; text-align: left; }
+.ai-chip:hover, .ai-chip:active { border-color: var(--accent) !important; color: var(--accent); }
+.ai-composer { flex: none; display: flex; align-items: flex-end; gap: 8px; padding: 8px 0 4px; border-top: 1px solid var(--line); }
+.ai-in { flex: 1; min-width: 0; box-sizing: border-box; resize: none; max-height: 150px; padding: 11px 12px; background: #0b0906; border: 1px solid var(--line); outline: 0; font: inherit; font-size: 16px; line-height: 1.4; color: var(--fg); border-radius: 0; }
+.ai-in:focus { border-color: var(--accent); }
+.ai-send { height: 46px; width: 46px; border-color: var(--accent) !important; color: var(--accent); }
+.ai-send:disabled, .ai-in:disabled { opacity: 0.45; }
+.ai-note { flex: none; text-align: center; color: var(--dim); font-size: 0.68rem; padding: 2px 0 6px; }
+@media (prefers-reduced-motion: reduce) { .ai-typing i, .ai-m { animation: none; } }
+.ai-conv { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+.ai-conv .drv-row { flex: 1; min-width: 0; border-bottom: 0 !important; }
+.ai-conv .drv-ib { width: 38px; height: 38px; }
+.cld-acts { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .cld-form { display: flex; flex-direction: column; gap: 4px; }
 .cld-in { display: block; width: 100%; box-sizing: border-box; height: 46px; margin: 4px 0; padding: 0 12px; background: #050403; border: 1px solid var(--line); outline: 0; }
 .cld-in:focus { border-color: var(--accent); }
 .cld-tabs { display: flex; gap: 6px; justify-content: center; margin: 4px 0 10px; }
 .cld .drv-card .drv-p { overflow-wrap: anywhere; }
+
+/* atalhos da tela inicial (v1.24.1) */
+.qk { display: flex; gap: 8px; margin: 2px 0 6px; }
+.qkb { width: 38px; height: 38px; display: inline-grid; place-items: center; background: none; border: 1px solid var(--line); color: var(--accent); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color .15s, background .15s; }
+.qkb:hover, .qkb:active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.qkb .drv-ico { width: 20px; height: 20px; }
 </style>
 
 <div class="term" hidden>
@@ -724,7 +779,7 @@ body {
 (function () {
   'use strict';
   var KEY = 'pensamentos.v2';
-  var VERSION = '1.24.0', BUILD = '2026-11-07';
+  var VERSION = '1.26.0', BUILD = '2026-11-09';
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out'), f = $('f'), inp = $('in'), modeEl = $('mode'), clock = $('clock');
   var MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -868,6 +923,7 @@ body {
   function saveLocal() {
     try {
       localStorage.setItem(KEY, JSON.stringify({ items: items.map(function (x) { return { key: x.key, n: x.n, t: x.t, ts: x.ts, ed: x.ed }; }) }));
+      syKick();
       return true;
     } catch (e) { return false; }
   }
@@ -1495,7 +1551,7 @@ body {
     if (!it) { say('err', 'não existe pensamento #' + m[1] + '.'); return; }
     items = items.filter(function (x) { return x !== it; });
     lastDeleted = it;
-    drop(it);
+    drop(it); syTomb('t', it.key);
     say('ok', 'apagado #' + it.n + '. /desfazer traz de volta.');
   }
   function cmdConfirmar() {
@@ -1503,13 +1559,13 @@ body {
     wipe = false;
     var all = items.slice();
     items = []; lastDeleted = null;
-    all.forEach(drop);
+    all.forEach(drop); all.forEach(function (x) { syTomb('t', x.key); });
     say('ok', all.length + ' pensamentos apagados.');
   }
   function cmdDesfazer() {
     if (!lastDeleted) { say('dim', 'nada para desfazer.'); return; }
     var it = lastDeleted; lastDeleted = null;
-    items.push(it); sortItems(); put(it);
+    items.push(it); sortItems(); syUntomb('t', it.key); put(it);
     say('ok', '#' + it.n + ' de volta.');
   }
   function cmdStats() {
@@ -1667,108 +1723,9 @@ body {
     cmdPing('');
   }
 
-  /* ---------- Google Drive (v1.20) ----------
-     Login oficial do Google (OAuth 2.0, Google Identity Services). Escopo: somente leitura.
-     Não existe segredo no código: o "ID do cliente" é público por natureza. O token fica só neste aparelho,
-     dura cerca de 1 hora (regra do Google para apps sem servidor) e é renovado com um toque, sem nova autorização. */
-  var DRIVE_CLIENT_ID = '';   /* opcional: cole aqui o ID do cliente para não precisar digitar no app */
-  var DRV_KEY = 'emrys.drive.v1', DRV_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
-  var DRV_API = 'https://www.googleapis.com/drive/v3', DRV_FOLDER = 'application/vnd.google-apps.folder';
-  var drv = { el: null, view: '', tab: 'my', stack: [], q: '', files: [], next: '', loading: false, req: 0, user: null, quota: null, msg: '', pv: null };
-
-  function drvLoad() { try { return JSON.parse(localStorage.getItem(DRV_KEY)) || {}; } catch (e) { return {}; } }
-  function drvSave(o) { try { localStorage.setItem(DRV_KEY, JSON.stringify(o)); } catch (e) {} }
-  function drvCid() { return DRIVE_CLIENT_ID || drvLoad().cid || ''; }
-  function drvTok() { var s = drvLoad(); return (s.tok && s.exp > Date.now() + 30000) ? s.tok : ''; }
-  function drvStore(token, secs) { var s = drvLoad(); s.tok = token; s.exp = Date.now() + (+secs || 3600) * 1000; s.was = 1; drvSave(s); }
-  function drvCidOk(v) { return /^[0-9]+-[A-Za-z0-9_]+\.apps\.googleusercontent\.com$/.test(v); }
-
-  /* volta do login por redirecionamento (plano B quando o popup do Google é bloqueado) */
-  (function drvHash() {
-    var h = location.hash || '';
-    if (h.indexOf('access_token=') < 0 && h.indexOf('error=') < 0) return;
-    var p = new URLSearchParams(h.slice(1)), s = drvLoad();
-    if (!p.get('state')) return;   /* sem state não é do Google Drive (pode ser link do Emrys Cloud) */
-    if (p.get('state') && p.get('state') === s.state && p.get('access_token')) {
-      s.tok = p.get('access_token'); s.exp = Date.now() + (+p.get('expires_in') || 3600) * 1000; s.was = 1; s.resume = 1;
-    }
-    s.state = ''; drvSave(s);
-    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-  })();
-
-  function drvGis() {
-    return new Promise(function (res, rej) {
-      if (window.google && google.accounts && google.accounts.oauth2) return res();
-      var s = document.createElement('script');
-      s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
-      s.onload = function () { res(); };
-      s.onerror = function () { rej(new Error('gis')); };
-      document.head.appendChild(s);
-    });
-  }
-  function drvWebView() { return /iPhone|iPad|iPod/.test(navigator.userAgent) && !/Safari/.test(navigator.userAgent) && !navigator.standalone; }
-
-  function drvAuth() {
-    var cid = drvCid(); if (!cid) { drv.view = 'setup'; drvRender(); return; }
-    if (!(window.google && google.accounts && google.accounts.oauth2)) {
-      drv.msg = 'carregando o login do Google… toque de novo em um instante.'; drvRender();
-      drvGis().then(function () { drv.msg = ''; drvRender(); }, function () { drv.msg = 'sem conexão com o Google. verifique a internet.'; drvRender(); });
-      return;
-    }
-    var s = drvLoad();
-    var tc = google.accounts.oauth2.initTokenClient({
-      client_id: cid, scope: DRV_SCOPE, hint: s.hint || undefined,
-      callback: function (r) {
-        if (!r || r.error) { drv.msg = 'não foi possível entrar (' + ((r && r.error) || 'erro') + ').'; drvRender(); return; }
-        if (!google.accounts.oauth2.hasGrantedAllScopes(r, DRV_SCOPE)) { drv.msg = 'a permissão de leitura do Drive não foi concedida.'; drvRender(); return; }
-        drvStore(r.access_token, r.expires_in); drv.msg = ''; drvStart();
-      },
-      error_callback: function (e) {
-        var t = e && e.type;
-        drv.msg = t === 'popup_closed' ? 'login cancelado.' : t === 'popup_failed_to_open' ? 'o iPhone bloqueou a janela do Google. use "entrar por redirecionamento".' : 'erro no login do Google.';
-        drvRender();
-      }
-    });
-    tc.requestAccessToken({ prompt: '' });
-  }
-  function drvRedirect() {
-    var cid = drvCid(); if (!cid) return;
-    var s = drvLoad(); s.state = Math.random().toString(36).slice(2) + Date.now().toString(36); drvSave(s);
-    var q = new URLSearchParams({ client_id: cid, redirect_uri: location.origin + location.pathname, response_type: 'token', scope: DRV_SCOPE, state: s.state, include_granted_scopes: 'true' });
-    if (s.hint) q.set('login_hint', s.hint);
-    location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + q.toString();
-  }
-  function drvDisconnect() {
-    var s = drvLoad(), t = s.tok;
-    var done = function () { var n = { cid: s.cid }; drvSave(n); drv.user = null; drv.quota = null; drv.files = []; drv.stack = []; drv.q = ''; drv.view = 'connect'; drv.msg = 'desconectado. o acesso foi revogado no Google.'; drvRender(); };
-    if (t && window.google && google.accounts && google.accounts.oauth2) { try { google.accounts.oauth2.revoke(t, done); return; } catch (e) {} }
-    done();
-  }
-
-  function drvFetch(url, opt) {
-    var t = drvTok();
-    if (!t) { drv.view = 'connect'; drv.msg = 'a sessão expirou. toque para renovar o acesso.'; drvRender(); return Promise.reject(new Error('auth')); }
-    opt = opt || {}; opt.headers = { Authorization: 'Bearer ' + t };
-    return fetch(url, opt).then(function (r) {
-      if (r.status === 401) {
-        var s = drvLoad(); s.tok = ''; s.exp = 0; drvSave(s);
-        drv.view = 'connect'; drv.msg = 'a sessão expirou. toque para renovar o acesso.'; drvRender();
-        throw new Error('auth');
-      }
-      if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) {
-        var e = new Error((j.error && j.error.message) || ('erro ' + r.status)); e.status = r.status; throw e;
-      });
-      return r;
-    });
-  }
-
-  /* ---------- formatos ---------- */
-  var GX = {
-    'application/vnd.google-apps.document': { n: 'Google Docs', x: [['docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'], ['pdf', 'application/pdf']] },
-    'application/vnd.google-apps.spreadsheet': { n: 'Google Sheets', x: [['xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'], ['pdf', 'application/pdf']] },
-    'application/vnd.google-apps.presentation': { n: 'Google Slides', x: [['pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'], ['pdf', 'application/pdf']] },
-    'application/vnd.google-apps.drawing': { n: 'Google Drawings', x: [['png', 'image/png'], ['pdf', 'application/pdf']] }
-  };
+  /* ---------- utilidades compartilhadas das telas (ícones, tamanhos) ---------- */
+  var DRV_FOLDER = 'application/vnd.google-apps.folder';
+  try { localStorage.removeItem('emrys.drive.v1'); } catch (e) {}   /* limpa restos da antiga integração com o Google Drive */
   function drvKind(m) {
     if (m === DRV_FOLDER) return 'folder';
     if (m === 'application/vnd.google-apps.shortcut') return 'link';
@@ -1783,22 +1740,12 @@ body {
     if (m.indexOf('text/') === 0 || /json|xml|msword|wordprocessing/.test(m)) return 'doc';
     return 'file';
   }
-  function drvFormat(f) {
-    var m = f.mimeType || '';
-    if (m === DRV_FOLDER) return 'pasta';
-    if (GX[m]) return GX[m].n;
-    if (m === 'application/pdf') return 'PDF';
-    var mm = (f.name || '').match(/\.([A-Za-z0-9]{1,5})$/);
-    if (mm) return mm[1].toUpperCase();
-    return (m.split('/')[1] || 'arquivo').replace(/^x-/, '').slice(0, 10).toUpperCase();
-  }
   function drvSize(n) {
     if (n == null || n === '' || isNaN(+n)) return '—';
     n = +n; var u = ['B', 'KB', 'MB', 'GB', 'TB'], i = 0;
     while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
     return (i === 0 ? n : n.toFixed(n < 10 ? 1 : 0)).toString().replace('.', ',') + ' ' + u[i];
   }
-  function drvDate(s) { var t = Date.parse(s); return t ? fmt(t) : '—'; }
   var DI = {
     folder: SVG('<path d="M3 6a1 1 0 0 1 1-1h5l2 2h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>'),
     link: SVG('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/>'),
@@ -1817,305 +1764,10 @@ body {
     down: SVG('<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>'),
     share: SVG('<path d="M12 15V4M8 8l4-4 4 4M6 12v8h12v-8"/>'),
     out: SVG('<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>'),
-    key: SVG('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>'),
-    drive: SVG('<path d="M8 4h8l6 10-4 6H6l-4-6zM8 4l6 10h8M2 14h12l4 6"/>')
+    key: SVG('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>')
   };
   function h(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function dIco(name) { var s = h('span', 'drv-ico'); s.innerHTML = DI[name] || DI.file; return s; }
-  function dBtn(icon, label, fn, cls) {
-    var b = h('button', 'drv-btn' + (cls ? ' ' + cls : '')); b.type = 'button';
-    if (icon) b.appendChild(dIco(icon));
-    if (label) b.appendChild(h('span', null, label));
-    b.addEventListener('click', fn); return b;
-  }
-
-  /* ---------- abrir / fechar ---------- */
-  function cmdDrive() {
-    say('dim', 'abrindo o Drive…');
-    if (drv.el) return;
-    var el = h('section', 'drv'); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Google Drive');
-    document.body.appendChild(el); drv.el = el;
-    try { inp.blur(); } catch (e) {}
-    if (drvCid() && !drvWebView()) drvGis().catch(function () {});
-    drv.stack = []; drv.q = ''; drv.tab = 'my'; drv.files = []; drv.msg = '';
-    if (!drvCid()) { drv.view = 'setup'; drvRender(); }
-    else if (drvTok()) drvStart();
-    else { drv.view = 'connect'; drvRender(); }
-  }
-  function drvClose() {
-    drvPvClose();
-    if (drv.el) { drv.el.remove(); drv.el = null; }
-    try { if (window.matchMedia('(pointer: fine)').matches) inp.focus({ preventScroll: true }); } catch (e) {}
-  }
-  document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Escape' || !drv.el) return;
-    if (drv.pv) drvPvClose(); else drvClose();
-  });
-
-  function drvStart() {
-    drv.view = 'browse'; drv.msg = '';
-    drvRender();
-    drvFetch(DRV_API + '/about?fields=' + encodeURIComponent('user(displayName,emailAddress),storageQuota(limit,usage)')).then(function (r) { return r.json(); }).then(function (j) {
-      drv.user = j.user || null; drv.quota = j.storageQuota || null;
-      if (drv.user && drv.user.emailAddress) { var s = drvLoad(); s.hint = drv.user.emailAddress; drvSave(s); }
-      drvFoot();
-    }).catch(function () {});
-    drvList(true);
-  }
-
-  /* ---------- listagem ---------- */
-  function drvEsc(s) { return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
-  function drvList(reset) {
-    if (reset) { drv.files = []; drv.next = ''; }
-    var top = drv.stack.length ? drv.stack[drv.stack.length - 1] : null, q, order = 'folder,name_natural';
-    if (drv.q) q = "name contains '" + drvEsc(drv.q) + "' and trashed=false";
-    else if (top) q = "'" + top.id + "' in parents and trashed=false";
-    else if (drv.tab === 'shared') q = 'sharedWithMe=true and trashed=false';
-    else if (drv.tab === 'recent') { q = "trashed=false and mimeType != '" + DRV_FOLDER + "'"; order = 'modifiedTime desc'; }
-    else q = "'root' in parents and trashed=false";
-    var p = new URLSearchParams({
-      q: q, orderBy: order, pageSize: '60', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true',
-      fields: 'nextPageToken,files(id,name,mimeType,size,modifiedTime,webViewLink,shortcutDetails(targetId,targetMimeType))'
-    });
-    if (drv.next) p.set('pageToken', drv.next);
-    var my = ++drv.req; drv.loading = true; drv.msg = ''; drvList_ui();
-    drvFetch(DRV_API + '/files?' + p.toString()).then(function (r) { return r.json(); }).then(function (j) {
-      if (my !== drv.req) return;
-      drv.loading = false; drv.next = j.nextPageToken || '';
-      var from = drv.files.length; drv.files = drv.files.concat(j.files || []);
-      drvList_ui(from);
-    }).catch(function (e) {
-      if (my !== drv.req || e.message === 'auth') return;
-      drv.loading = false; drv.msg = e.status === 403 ? 'o Google negou o acesso (' + e.message + ')' : 'não consegui listar: ' + e.message; drvList_ui();
-    });
-  }
-
-  /* ---------- tela ---------- */
-  function drvRender() {
-    var el = drv.el; if (!el) return;
-    el.textContent = '';
-    var top = h('header', 'drv-top');
-    var back = dBtn('up', '', function () {
-      if (drv.view === 'browse' && (drv.q || drv.stack.length)) {
-        if (drv.q) { drv.q = ''; } else { drv.stack.pop(); }
-        drvRender(); drvList(true);
-      } else drvClose();
-    }, 'drv-ib');
-    back.setAttribute('aria-label', 'voltar');
-    var ttl = h('div', 'drv-title'); ttl.append(dIco('drive'), h('span', null, 'Drive'));
-    var close = dBtn('x', '', drvClose, 'drv-ib'); close.setAttribute('aria-label', 'fechar');
-    top.append(back, ttl, close);
-    el.appendChild(top);
-    el.appendChild(h('div', 'drv-orn', '✦'));
-    var body = h('div', 'drv-body'); el.appendChild(body);
-
-    if (drv.view === 'setup') return drvSetup(body);
-    if (drv.view === 'connect') return drvConnect(body);
-
-    var sb = h('form', 'drv-search'); sb.setAttribute('role', 'search');
-    var si = h('input'); si.type = 'search'; si.placeholder = 'pesquisar pelo nome'; si.value = drv.q; si.autocomplete = 'off'; si.autocapitalize = 'off'; si.spellcheck = false;
-    sb.append(dIco('search'), si);
-    sb.addEventListener('submit', function (e) { e.preventDefault(); drv.q = si.value.trim(); drv.stack = []; drvCrumbs(); drvTabs(); drvList(true); si.blur(); });
-    si.addEventListener('input', function () { if (!si.value && drv.q) { drv.q = ''; drvCrumbs(); drvTabs(); drvList(true); } });
-    body.appendChild(sb);
-    var tabs = h('nav', 'drv-tabs'); tabs.id = 'drv-tabs'; body.appendChild(tabs);
-    var cr = h('div', 'drv-crumbs'); cr.id = 'drv-crumbs'; body.appendChild(cr);
-    var ls = h('div', 'drv-list'); ls.id = 'drv-list'; body.appendChild(ls);
-    var ft = h('footer', 'drv-foot'); ft.id = 'drv-foot'; el.appendChild(ft);
-    drvTabs(); drvCrumbs(); drvList_ui(); drvFoot();
-  }
-  function drvTabs() {
-    var n = $('drv-tabs'); if (!n) return; n.textContent = '';
-    [['my', 'Meu Drive'], ['shared', 'Compartilhados'], ['recent', 'Recentes']].forEach(function (t) {
-      var b = h('button', 'drv-tab' + (drv.tab === t[0] && !drv.q ? ' on' : ''), t[1]); b.type = 'button';
-      b.addEventListener('click', function () { drv.tab = t[0]; drv.stack = []; drv.q = ''; var i = drv.el.querySelector('.drv-search input'); if (i) i.value = ''; drvTabs(); drvCrumbs(); drvList(true); });
-      n.appendChild(b);
-    });
-  }
-  function drvCrumbs() {
-    var n = $('drv-crumbs'); if (!n) return; n.textContent = '';
-    var root = drv.tab === 'shared' ? 'Compartilhados' : drv.tab === 'recent' ? 'Recentes' : 'Meu Drive';
-    if (drv.q) { n.appendChild(h('span', 'drv-cur', 'busca: “' + drv.q + '”')); return; }
-    var parts = [{ name: root, i: -1 }].concat(drv.stack.map(function (s, i) { return { name: s.name, i: i }; }));
-    parts.forEach(function (p, k) {
-      if (k) n.appendChild(h('span', 'drv-sep', '›'));
-      var last = k === parts.length - 1;
-      var b = h(last ? 'span' : 'button', last ? 'drv-cur' : 'drv-crumb', p.name);
-      if (!last) { b.type = 'button'; b.addEventListener('click', function () { drv.stack = drv.stack.slice(0, p.i + 1); drvCrumbs(); drvList(true); }); }
-      n.appendChild(b);
-    });
-    n.scrollLeft = n.scrollWidth;
-  }
-  function drvList_ui(from) {
-    var n = $('drv-list'); if (!n) return;
-    from = from || 0;
-    if (!from) n.textContent = '';
-    var old = n.querySelector('.drv-more, .drv-state'); if (old) old.remove();
-    drv.files.slice(from).forEach(function (f, i) {
-      var eff = f.mimeType === 'application/vnd.google-apps.shortcut' && f.shortcutDetails ? f.shortcutDetails.targetMimeType : f.mimeType;
-      var row = h('button', 'drv-row'); row.type = 'button'; row.style.setProperty('--i', Math.min(i, 12));
-      var ic = dIco(drvKind(eff || '')); ic.classList.add('k-' + drvKind(eff || ''));
-      var tx = h('span', 'drv-tx'); tx.appendChild(h('span', 'drv-name', f.name));
-      var isF = eff === DRV_FOLDER;
-      tx.appendChild(h('span', 'drv-meta', [isF ? 'pasta' : drvFormat({ name: f.name, mimeType: eff || '' }), isF ? '' : drvSize(f.size), drvDate(f.modifiedTime)].filter(Boolean).join(' · ')));
-      row.append(ic, tx);
-      row.addEventListener('click', function () { drvOpen(f); });
-      n.appendChild(row);
-    });
-    if (drv.loading) n.appendChild(h('div', 'drv-state', 'consultando o Drive…'));
-    else if (drv.msg) n.appendChild(h('div', 'drv-state err', drv.msg));
-    else if (!drv.files.length) n.appendChild(h('div', 'drv-state', drv.q ? 'nada encontrado com esse nome.' : 'nada por aqui.'));
-    else if (drv.next) { var m = dBtn('', 'carregar mais', function () { drvList(false); }, 'drv-more'); n.appendChild(m); }
-  }
-  function drvFoot() {
-    var n = $('drv-foot'); if (!n) return; n.textContent = '';
-    var who = h('span', 'drv-who');
-    var u = drv.user, q = drv.quota;
-    who.appendChild(h('b', null, u ? (u.emailAddress || u.displayName) : 'conectado'));
-    if (q && q.usage) who.appendChild(h('i', null, drvSize(q.usage) + (q.limit ? ' de ' + drvSize(q.limit) : '') + ' usados'));
-    n.append(who, dBtn('key', 'desconectar', drvDisconnect, 'drv-quiet'));
-  }
-
-  function drvSetup(body) {
-    var box = h('div', 'drv-card');
-    box.appendChild(h('h2', null, 'Primeira vez: ligar o Google'));
-    box.appendChild(h('p', 'drv-p', 'O Emrys precisa de um “ID do cliente” gratuito do Google. É criado uma vez só, em 5 passos, e não é segredo.'));
-    var ol = h('ol', 'drv-steps');
-    var origin = location.origin;
-    [
-      'Abra console.cloud.google.com, entre com sua conta e crie um projeto chamado Emrys.',
-      'Menu ☰ → APIs e serviços → Biblioteca → procure “Google Drive API” → Ativar.',
-      'Menu ☰ → APIs e serviços → Tela de permissão OAuth (ou “Google Auth Platform”) → Começar. Nome: Emrys. E-mail: o seu. Público: Externo. Depois, em Público-alvo, deixe “Em teste” e adicione o seu e-mail em Usuários de teste. Em Acesso a dados, adicione o escopo …/auth/drive.readonly.',
-      'Em Clientes (ou Credenciais) → Criar cliente → Aplicativo da Web. Em “Origens JavaScript autorizadas” coloque: ' + origin + ' (sem barra no final). Se quiser o plano B, em “URIs de redirecionamento” coloque: ' + origin + location.pathname,
-      'Copie o “ID do cliente” (termina em .apps.googleusercontent.com) e cole abaixo.'
-    ].forEach(function (t) { ol.appendChild(h('li', null, t)); });
-    box.appendChild(ol);
-    var row = h('form', 'drv-field');
-    var i = h('input'); i.type = 'text'; i.placeholder = '000000-xxxx.apps.googleusercontent.com'; i.autocomplete = 'off'; i.autocapitalize = 'off'; i.spellcheck = false;
-    var go = h('button', 'drv-btn pri', 'salvar'); go.type = 'submit';
-    row.append(i, go);
-    var msg = h('p', 'drv-p err');
-    row.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var v = i.value.trim();
-      if (!drvCidOk(v)) { msg.textContent = 'esse ID não parece certo. ele termina em .apps.googleusercontent.com'; return; }
-      var s = drvLoad(); s.cid = v; drvSave(s); drv.view = 'connect'; drv.msg = ''; drvGis().catch(function () {}); drvRender();
-    });
-    box.append(row, msg);
-    body.appendChild(box);
-  }
-  function drvConnect(body) {
-    var s = drvLoad();
-    var box = h('div', 'drv-card center');
-    box.appendChild(h('h2', null, s.was ? 'Renovar o acesso' : 'Conectar ao Google Drive'));
-    if (drvWebView()) box.appendChild(h('p', 'drv-p err', 'O Google não permite login dentro de apps embutidos. Abra o Emrys no Safari ou pelo ícone da tela de início.'));
-    box.appendChild(h('p', 'drv-p', s.was
-      ? 'Por segurança o Google libera cada acesso por cerca de 1 hora. Um toque renova, sem pedir tudo de novo.'
-      : 'O login é feito na página oficial do Google. O Emrys só pede permissão de leitura: não consegue alterar nem apagar nada.'));
-    if (drv.msg) box.appendChild(h('p', 'drv-p ' + (/desconectado/.test(drv.msg) ? '' : 'err'), drv.msg));
-    box.appendChild(dBtn('key', s.was ? 'renovar acesso' : 'conectar com Google', drvAuth, 'pri big'));
-    var alt = h('div', 'drv-alt');
-    var a1 = h('button', 'drv-link', 'entrar por redirecionamento'); a1.type = 'button'; a1.addEventListener('click', drvRedirect);
-    var a2 = h('button', 'drv-link', 'trocar ID do cliente'); a2.type = 'button';
-    a2.addEventListener('click', function () { var t = drvLoad(); t.cid = ''; drvSave(t); drv.view = 'setup'; drv.msg = ''; drvRender(); });
-    alt.append(a1, a2); box.appendChild(alt);
-    body.appendChild(box);
-  }
-
-  /* ---------- abrir arquivo ---------- */
-  function drvOpen(f) {
-    var m = f.mimeType, id = f.id;
-    if (m === 'application/vnd.google-apps.shortcut' && f.shortcutDetails) { m = f.shortcutDetails.targetMimeType; id = f.shortcutDetails.targetId; }
-    if (m === DRV_FOLDER) {
-      drv.stack.push({ id: id, name: f.name }); drv.q = '';
-      var i = drv.el.querySelector('.drv-search input'); if (i) i.value = '';
-      drvCrumbs(); drvTabs(); drvList(true); return;
-    }
-    drvPreview({ id: id, name: f.name, mimeType: m, size: f.size, modifiedTime: f.modifiedTime, webViewLink: f.webViewLink });
-  }
-  function drvPvClose() {
-    if (!drv.pv) return;
-    if (drv.pv.url) { try { URL.revokeObjectURL(drv.pv.url); } catch (e) {} }
-    if (drv.pv.el) drv.pv.el.remove();
-    drv.pv = null;
-  }
-  function drvSaveBlob(blob, name) {
-    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
-    document.body.appendChild(a); a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-  }
-  function drvGet(f, expMime) {
-    var u = expMime ? DRV_API + '/files/' + f.id + '/export?mimeType=' + encodeURIComponent(expMime) : DRV_API + '/files/' + f.id + '?alt=media&supportsAllDrives=true';
-    return drvFetch(u).then(function (r) { return r.blob(); });
-  }
-  function drvPreview(f) {
-    drvPvClose();
-    var pv = { f: f, el: h('div', 'drv-pv'), url: '', blob: null }; drv.pv = pv;
-    var gx = GX[f.mimeType], kind = drvKind(f.mimeType), size = f.size == null ? 0 : +f.size;
-    var top = h('header', 'drv-top');
-    var back = dBtn('up', '', drvPvClose, 'drv-ib'); back.setAttribute('aria-label', 'voltar');
-    top.append(back, h('div', 'drv-pvname', f.name));
-    pv.el.appendChild(top);
-    var stage = h('div', 'drv-stage'); pv.el.appendChild(stage);
-    var info = h('dl', 'drv-info');
-    [['nome', f.name], ['formato', drvFormat(f)], ['tamanho', gx ? 'documento do Google' : drvSize(f.size)], ['modificado', drvDate(f.modifiedTime)]].forEach(function (r) { info.append(h('dt', null, r[0]), h('dd', null, r[1])); });
-    var acts = h('div', 'drv-acts');
-    var note = h('p', 'drv-p'); 
-    pv.el.append(info, acts, note);
-    drv.el.appendChild(pv.el);
-
-    function dl(mime, ext) {
-      note.textContent = 'baixando…'; note.className = 'drv-p';
-      var go = (!gx && pv.blob) ? Promise.resolve(pv.blob) : drvGet(f, mime);
-      go.then(function (b) {
-        if (!drv.pv || drv.pv !== pv) return;
-        var nm = f.name; if (ext && !new RegExp('\\.' + ext + '$', 'i').test(nm)) nm += '.' + ext;
-        drvSaveBlob(b, nm); note.textContent = 'pronto. se o iPhone não baixou, use “compartilhar” e escolha Salvar em Arquivos.';
-        pv.last = { b: b, nm: nm }; shareBtn();
-      }).catch(function (e) { if (e.message !== 'auth') { note.textContent = 'não consegui baixar: ' + e.message; note.className = 'drv-p err'; } });
-    }
-    var shBtn = null;
-    function shareBtn() {
-      if (shBtn || !pv.last || !navigator.canShare || !navigator.share) return;
-      var file; try { file = new File([pv.last.b], pv.last.nm, { type: pv.last.b.type || 'application/octet-stream' }); } catch (e) { return; }
-      if (!navigator.canShare({ files: [file] })) return;
-      shBtn = dBtn('share', 'compartilhar', function () { navigator.share({ files: [file] }).catch(function () {}); });
-      acts.appendChild(shBtn);
-    }
-    if (gx) gx.x.forEach(function (x) { acts.appendChild(dBtn('down', 'baixar .' + x[0], function () { dl(x[1], x[0]); }, x[0] === 'pdf' ? '' : 'pri')); });
-    else acts.appendChild(dBtn('down', 'baixar', function () { dl('', ''); }, 'pri'));
-    if (f.webViewLink) { var a = dBtn('out', 'abrir no Drive', function () { window.open(f.webViewLink, '_blank', 'noopener'); }); acts.appendChild(a); }
-
-    var cap = { image: 30e6, pdf: 30e6, doc: 2e6, video: 60e6, audio: 60e6, sheet: 30e6, slide: 30e6 };
-    var asText = f.mimeType.indexOf('text/') === 0 || /json|xml/.test(f.mimeType);
-    var can = gx ? gx.x.some(function (x) { return x[0] === 'pdf'; }) : ((asText && size <= 2e6) || (!asText && (kind === 'image' || kind === 'pdf' || kind === 'video' || kind === 'audio') && size <= cap[kind]));
-    if (!can) { stage.appendChild(h('div', 'drv-state', gx || asText || kind === 'image' || kind === 'pdf' || kind === 'video' || kind === 'audio' ? 'arquivo grande demais para ver aqui. baixe ou abra no Drive.' : 'sem pré-visualização para este formato. você pode baixar o arquivo.')); return; }
-    stage.appendChild(h('div', 'drv-state', 'abrindo…'));
-    var pdfMime = gx ? (f.mimeType.indexOf('drawing') > -1 ? 'image/png' : 'application/pdf') : '';
-    drvGet(f, pdfMime).then(function (b) {
-      if (drv.pv !== pv) return;
-      pv.blob = gx ? null : b; stage.textContent = '';
-      if (asText) return b.text().then(function (t) { if (drv.pv !== pv) return; var pre = h('pre', 'drv-text'); pre.textContent = t; stage.appendChild(pre); });
-      pv.url = URL.createObjectURL(b);
-      var mt = gx ? pdfMime : f.mimeType;
-      if (mt.indexOf('image/') === 0) {
-        var im = h('img', 'drv-img'); im.src = pv.url; im.alt = f.name;
-        im.addEventListener('click', function () { im.classList.toggle('full'); });
-        stage.appendChild(im);
-      } else if (mt === 'application/pdf') {
-        var fr = h('iframe', 'drv-frame'); fr.src = pv.url; fr.title = f.name; stage.appendChild(fr);
-        acts.insertBefore(dBtn('out', 'tela cheia', function () { window.open(pv.url, '_blank'); }), acts.firstChild);
-      } else if (mt.indexOf('video/') === 0 || mt.indexOf('audio/') === 0) {
-        var v = h(mt.indexOf('video/') === 0 ? 'video' : 'audio', 'drv-media'); v.controls = true; v.setAttribute('playsinline', ''); v.src = pv.url; stage.appendChild(v);
-      }
-      if (!gx) { pv.last = { b: b, nm: f.name }; shareBtn(); }
-    }).catch(function (e) {
-      if (drv.pv !== pv || e.message === 'auth') return;
-      stage.textContent = '';
-      stage.appendChild(h('div', 'drv-state err', e.status === 403 ? 'o Google não deixou exportar este arquivo (muito grande?). use “abrir no Drive”.' : 'não consegui abrir: ' + e.message));
-    });
-  }
-
   /* ---------- Notas (v1.22) · bloco de notas no estilo do iPhone ---------- */
   var NK = 'emrys.notas.v1';
   var nts = { dek: null, plain: '', el: null, notes: [], folders: [], view: 'list', folder: 'all', q: '', cur: null, timer: 0 };
@@ -2145,7 +1797,7 @@ body {
     nts.folders = Array.isArray(d.folders) ? d.folders.filter(function (f) { return f && f.id && f.name; }) : [];
   }
   function ntsSave() {
-    try { localStorage.setItem(NK, JSON.stringify({ notes: nts.notes, folders: nts.folders })); return true; }
+    try { localStorage.setItem(NK, JSON.stringify({ notes: nts.notes, folders: nts.folders })); syKick(); return true; }
     catch (e) { var s = $('nts-msg'); if (s) s.textContent = 'sem espaço para salvar. exporte com /backup e apague notas antigas.'; return false; }
   }
   function ntsCount() { try { var d = JSON.parse(localStorage.getItem(NK)); return d && d.notes ? d.notes.length : 0; } catch (e) { return 0; } }
@@ -2250,7 +1902,7 @@ body {
     var v = window.prompt('Renomear a pasta. Deixe vazio para apagá-la (as notas voltam para "Todas").', f.name);
     if (v === null) return; v = v.trim().slice(0, 30);
     if (v) f.name = v;
-    else { nts.folders = nts.folders.filter(function (x) { return x.id !== id; }); nts.notes.forEach(function (n) { if (n.f === id) delete n.f; }); nts.folder = 'all'; }
+    else { nts.folders = nts.folders.filter(function (x) { return x.id !== id; }); syTomb('f', id); nts.notes.forEach(function (n) { if (n.f === id) delete n.f; }); nts.folder = 'all'; }
     ntsSave(); ntsChips(); ntsRows();
   }
   function ntsRows() {
@@ -2274,7 +1926,7 @@ body {
       ft.appendChild(h('span', 'nts-count', list.length + (list.length === 1 ? ' nota' : ' notas')));
       if (nts.folder === 'trash' && list.length) ft.appendChild(nBtn('trash', 'esvaziar', function () {
         if (!window.confirm('Apagar definitivamente ' + list.length + ' notas?')) return;
-        nts.notes = nts.notes.filter(function (x) { return !x.del; }); ntsSave(); ntsChips(); ntsRows();
+        nts.notes.forEach(function (x) { if (x.del) syTomb('n', x.id); }); nts.notes = nts.notes.filter(function (x) { return !x.del; }); ntsSave(); ntsChips(); ntsRows();
       }, 'drv-quiet'));
     }
   }
@@ -2302,7 +1954,7 @@ body {
   function ntsBack() {
     ntsFlush().then(function () {
       var n = nts.cur;
-      if (n && !n.del && !n.lk && !(n.t || '').trim()) nts.notes = nts.notes.filter(function (x) { return x !== n; });
+      if (n && !n.del && !n.lk && !(n.t || '').trim()) { nts.notes = nts.notes.filter(function (x) { return x !== n; }); syTomb('n', n.id); }
       nts.cur = null; nts.plain = ''; ntsSave(); ntsList();
     });
   }
@@ -3184,6 +2836,7 @@ body {
     return clListDir(rel).then(function (rs) {
       var subs = [];
       rs.forEach(function (r) {
+        if (!rel && r.name === '_sync') return;
         var m = clMap(rel, r);
         if (r.name === CL_KEEP) { files.push({ name: r.name, folder: false, size: 0, mime: '', ts: m.ts, path: m.path, keep: true }); return; }
         if (m.folder) { folders.push(m.path); subs.push(m.path); } else files.push(m);
@@ -3255,6 +2908,7 @@ body {
     if (cl.s) clEnter(); else { cl.view = 'auth'; clRender(); }
   }
   function clClose() {
+    cl.next = '';
     clViewClose(); if (cl.el) { cl.el.remove(); cl.el = null; }
     try { if (window.matchMedia('(pointer: fine)').matches) inp.focus({ preventScroll: true }); } catch (e) {}
   }
@@ -3274,9 +2928,11 @@ body {
     }).catch(function (e) { clSaveS(null); cl.view = 'auth'; cl.msg = clMsg(e); clRender(); });
   }
   function clEnter() {
+    if (cl.next === 'ia') { cl.next = ''; clClose(); cmdIA(); return; }
+    if (cl.next === 'sync') { cl.next = ''; cl.view = 'sync'; cl.msg = ''; clRender(); return; }
     cl.view = 'browse'; cl.path = ''; cl.msg = ''; clRender();
     clToken().then(function () { return clListDir(''); }).then(function (rs) {
-      if (rs.length) return;
+      if (rs.some(function (r) { return r.name !== '_sync'; })) return;
       return Promise.all(CL_BASE.map(function (n) { return clUpload(n + '/' + CL_KEEP, new File([], CL_KEEP, { type: 'application/octet-stream' })).catch(function () {}); }));
     }).then(function () { clLoad(); clCrawl().catch(function () {}); }).catch(function (e) { if (!e.auth) { cl.msg = clMsg(e); clList(); } });
   }
@@ -3288,6 +2944,7 @@ body {
     var top = h('header', 'drv-top');
     var back = cBtn('up', '', function () {
       if (cl.view === 'browse' && (cl.q || cl.path)) { if (cl.q) { cl.q = ''; var i = el.querySelector('.drv-search input'); if (i) i.value = ''; } else cl.path = clParent(cl.path); clLoad(); }
+      else if (cl.view === 'sync') { cl.msg = ''; clEnter(); }
       else if (cl.view === 'recover' || cl.view === 'reset' || cl.view === 'verify') { cl.view = 'auth'; cl.msg = ''; clRender(); }
       else clClose();
     }, 'drv-ib', 'voltar');
@@ -3316,6 +2973,7 @@ body {
     if (cl.view === 'browse') return clBrowseShell();
     var body = clShell(), card = h('div', 'drv-card center'); body.appendChild(card);
     var link = function (t, fn) { var b = h('button', 'drv-link', t); b.type = 'button'; b.addEventListener('click', fn); return b; };
+    if (cl.view === 'sync') return clSyncView(card);
     if (cl.view === 'auth') {
       var mode = cl.mode || 'in';
       card.appendChild(h('h2', null, mode === 'in' ? 'Entrar na nuvem' : 'Criar conta'));
@@ -3395,6 +3053,7 @@ body {
   }
 
   /* ---- navegador de arquivos ---- */
+  CI.sync = SVG('<path d="M20 11a8 8 0 0 0-14-4M4 5v4h4M4 13a8 8 0 0 0 14 4M20 19v-4h-4"/>');
   CI.cloud = SVG('<path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5z"/>');
   function clBrowseShell() {
     var el = cl.el, body = clShell();
@@ -3419,7 +3078,7 @@ body {
     var ls = h('div', 'drv-list'); ls.id = 'cl-list'; body.appendChild(ls);
     var ft = h('footer', 'drv-foot'); ft.id = 'cl-foot'; el.appendChild(ft);
     var who = h('span', 'drv-who'); who.appendChild(h('b', null, (cl.s && cl.s.email) || 'conectado')); who.appendChild(h('i', null, 'arquivos privados · só você acessa'));
-    ft.append(who, cBtn('key', 'sair', clLogout, 'drv-quiet'));
+    ft.append(who, cBtn('sync', 'sync', function () { cl.view = 'sync'; cl.msg = ''; clRender(); }, 'drv-quiet'), cBtn('key', 'sair', clLogout, 'drv-quiet'));
     clMeter(); clList();
   }
   function clMeter() {
@@ -3448,7 +3107,7 @@ body {
       ix.folders.forEach(function (fp) { if (norm(clBase(fp)).indexOf(q) !== -1) r.push({ name: clBase(fp), folder: true, size: 0, mime: '', ts: 0, path: fp }); });
       return r;
     });
-    else p = clListDir(cl.path).then(function (rs) { return rs.filter(function (r) { return r.name !== CL_KEEP; }).map(function (r) { return clMap(cl.path, r); }); });
+    else p = clListDir(cl.path).then(function (rs) { return rs.filter(function (r) { return r.name !== CL_KEEP && !(cl.path === '' && r.name === '_sync'); }).map(function (r) { return clMap(cl.path, r); }); });
     p.then(function (list) { if (my !== cl.req) return; cl.loading = false; cl.items = list; clList(); }).catch(function (e) {
       if (my !== cl.req) return; cl.loading = false; if (e.auth) return; cl.msg = clMsg(e); clList();
     });
@@ -3619,6 +3278,499 @@ body {
     }).catch(function (e) { if (cl.pv !== pv) return; stage.textContent = ''; stage.appendChild(h('div', 'drv-state err', clMsg(e))); });
   }
 
+  /* ---------- Sincronização entre aparelhos (v1.25) ----------
+     Um único arquivo cifrado (AES-256-GCM) em <seu-id>/_sync/emrys.sync, no bucket privado do Emrys Cloud.
+     A chave nasce de uma "senha de sincronização" (PBKDF2) e nunca sai do aparelho. */
+  var SY_K = 'emrys.sync.v1', SY_T = 'emrys.sync.tomb', SY_FILE = '_sync/emrys.sync', SY_ITER = 250000, SY_KEEP = 90 * 86400000;
+  var sy = { busy: false, again: false, timer: 0, dirty: false, applying: false, err: '', last: 0 };
+  function syCfg() { try { var c = JSON.parse(localStorage.getItem(SY_K)); return c && c.kb ? c : null; } catch (e) { return null; } }
+  function sySet(c) { try { if (c) localStorage.setItem(SY_K, JSON.stringify(c)); else localStorage.removeItem(SY_K); } catch (e) {} }
+  function syTombGet() { try { var t = JSON.parse(localStorage.getItem(SY_T)) || {}; return { t: t.t || {}, n: t.n || {}, f: t.f || {} }; } catch (e) { return { t: {}, n: {}, f: {} }; } }
+  function syTombPut(t) { try { localStorage.setItem(SY_T, JSON.stringify(t)); } catch (e) {} }
+  function syTomb(kind, id) { if (!syCfg()) return; var t = syTombGet(); t[kind][id] = Date.now(); syTombPut(t); syKick(); }
+  function syUntomb(kind, id) { var t = syTombGet(); if (t[kind][id]) { delete t[kind][id]; syTombPut(t); } }
+  function syKick() {
+    if (sy.applying) return; var c = syCfg(); if (!c) return;
+    sy.dirty = true; clearTimeout(sy.timer);
+    sy.timer = setTimeout(function tick() {
+      if (nts.cur || document.hidden) { sy.timer = setTimeout(tick, 8000); return; }
+      syRun(false);
+    }, 8000);
+  }
+  function syKey(kb, usage) { return crypto.subtle.importKey('raw', b64d(kb), 'AES-GCM', false, ['encrypt', 'decrypt']); }
+  function syDerive(pw, salt, iter) {
+    return crypto.subtle.importKey('raw', vEnc(pw), 'PBKDF2', false, ['deriveBits']).then(function (k) {
+      return crypto.subtle.deriveBits({ name: 'PBKDF2', salt: b64d(salt), iterations: iter, hash: 'SHA-256' }, k, 256);
+    }).then(b64e);
+  }
+  function syPack(c, obj) {
+    return syKey(c.kb).then(function (k) { return aEnc(k, vEnc(JSON.stringify(obj))); }).then(function (o) { return JSON.stringify({ v: 1, salt: c.salt, iter: c.iter, iv: o.iv, ct: o.ct }); });
+  }
+  function syUnpack(c, text) {
+    var f; try { f = JSON.parse(text); if (!f || !f.iv || !f.ct) throw 0; } catch (e) { var er = new Error('arquivo de sincronização ilegível'); er.badfile = true; return Promise.reject(er); }
+    return syKey(c.kb).then(function (k) { return aDec(k, f); }).then(function (b) { return JSON.parse(new TextDecoder().decode(b)); }, function () { var er = new Error('badkey'); er.badkey = true; throw er; });
+  }
+  function syGet() {
+    return clToken().then(function (t) {
+      return fetch(CL_URL + '/storage/v1/object/authenticated/' + CL_BUCKET + '/' + clEnc(clKey(SY_FILE)), { headers: { apikey: CL_KEY, Authorization: 'Bearer ' + t }, cache: 'no-store' }).then(function (r) {
+        if (r.ok) return r.text();
+        return r.text().then(function (tx) {
+          if (r.status === 404 || /not.?found/i.test(tx)) return null;
+          var j = null; try { j = JSON.parse(tx); } catch (e) {}
+          var er = new Error((j && (j.message || j.error)) || ('erro ' + r.status)); er.status = r.status; throw er;
+        });
+      }, function () { var er = new Error('net'); er.net = true; throw er; });
+    });
+  }
+  function syPut(text) {
+    return clToken().then(function (t) {
+      var fd = new FormData(); fd.append('cacheControl', '0'); fd.append('', new Blob([text], { type: 'application/octet-stream' }), 'emrys.sync');
+      return fetch(CL_URL + '/storage/v1/object/' + CL_BUCKET + '/' + clEnc(clKey(SY_FILE)), { method: 'POST', headers: { apikey: CL_KEY, Authorization: 'Bearer ' + t, 'x-upsert': 'true' }, body: fd }).then(function (r) {
+        if (r.ok) return;
+        return r.text().then(function (tx) { var j = null; try { j = JSON.parse(tx); } catch (e) {} var er = new Error((j && (j.message || j.error)) || ('erro ' + r.status)); er.status = r.status; throw er; });
+      }, function () { var er = new Error('net'); er.net = true; throw er; });
+    });
+  }
+  function syDel() { return clApi('DELETE', '/storage/v1/object/' + CL_BUCKET, { prefixes: [clKey(SY_FILE)] }); }
+
+  /* marca o que mudou em notas/pastas (fixar, mover, apagar… não mexem na data de edição) */
+  function sySig(o, kind) { return kind === 'n' ? JSON.stringify([o.t, !!o.pin, o.f || '', o.del || 0, o.lk ? o.lk.ct : '']) : JSON.stringify([o.name]); }
+  function syStamp(c) {
+    var now = Date.now(), sg = c.sg || { n: {}, f: {} }, hit = false;
+    [['n', nts.notes], ['f', nts.folders]].forEach(function (p) {
+      p[1].forEach(function (o) { var st = (sg[p[0]] || {})[o.id]; if (st !== undefined && st !== sySig(o, p[0])) { o.mt = now; hit = true; } });
+    });
+    return hit;
+  }
+  function syVer(o) { return +o.mt || Math.max(+o.ed || 0, +o.del || 0, +o.ts || 0); }
+  function syTv(x) { return +x.ed || +x.ts || 0; }
+  function syCollect(c) {
+    if (!nts.el) ntsLoad();
+    var stamped = syStamp(c);
+    return { t: items.map(function (x) { var o = { key: x.key, n: x.n, t: x.t, ts: x.ts }; if (x.ed) o.ed = x.ed; return o; }), n: nts.notes, f: nts.folders, tomb: syTombGet(), vault: vGet(), stamped: stamped };
+  }
+  function syHash(s) { var x = 5381, i; for (i = 0; i < s.length; i++) x = ((x * 33) ^ s.charCodeAt(i)) >>> 0; return x.toString(36); }
+  function syCopyTitle(t) { var i = (t || '').indexOf('\n'); return i < 0 ? t + ' (conflito)' : t.slice(0, i) + ' (conflito)' + t.slice(i); }
+  function syStr(a, id) { return JSON.stringify(a.slice().sort(function (x, y) { return x[id] < y[id] ? -1 : 1; })); }
+  /* junta o que há neste aparelho (L) com o que veio da nuvem (R). última edição vence; apagados valem mais que cópias antigas */
+  function syMerge(L, R, last) {
+    var now = Date.now(); R = R || { t: [], n: [], f: [], tomb: {}, vault: null };
+    var tomb = { t: {}, n: {}, f: {} };
+    ['t', 'n', 'f'].forEach(function (k) {
+      var a = L.tomb[k] || {}, b = (R.tomb && R.tomb[k]) || {};
+      Object.keys(a).concat(Object.keys(b)).forEach(function (id) { var v = Math.max(a[id] || 0, b[id] || 0); if (v > now - SY_KEEP) tomb[k][id] = v; });
+    });
+    /* pensamentos */
+    var lm = {}, rm = {}, keys = {}, outT = [], taken = {}, late = [];
+    L.t.forEach(function (x) { lm[x.key] = x; keys[x.key] = 1; }); (R.t || []).forEach(function (x) { rm[x.key] = x; keys[x.key] = 1; });
+    Object.keys(keys).forEach(function (k) {
+      var l = lm[k], r = rm[k], best = !r ? l : !l ? r : (syTv(r) > syTv(l) ? r : l);
+      if (tomb.t[k] && tomb.t[k] >= syTv(best)) return;
+      var o = { key: best.key, n: best.n, t: best.t, ts: best.ts }; if (best.ed) o.ed = best.ed;
+      if (l) { taken[o.n] = 1; outT.push(o); } else late.push(o);
+    });
+    var mx = 0; outT.forEach(function (x) { if ((x.n || 0) > mx) mx = x.n; }); late.forEach(function (x) { if ((x.n || 0) > mx) mx = x.n; });
+    late.sort(function (a, b) { return a.ts - b.ts; }).forEach(function (o) { if (taken[o.n]) o.n = ++mx; taken[o.n] = 1; outT.push(o); });
+    outT.sort(function (a, b) { return (a.ts - b.ts) || ((a.n || 0) - (b.n || 0)); });
+    /* notas */
+    var ln = {}, rn = {}, ids = {}, outN = [], cut = now - 30 * 86400000;
+    L.n.forEach(function (x) { ln[x.id] = x; ids[x.id] = 1; }); (R.n || []).forEach(function (x) { rn[x.id] = x; ids[x.id] = 1; });
+    Object.keys(ids).forEach(function (id) {
+      var l = ln[id], r = rn[id], w = !r ? l : !l ? r : (syVer(r) > syVer(l) ? r : syVer(l) > syVer(r) ? l : ((r.t || '') > (l.t || '') ? r : l)), lo = w === l ? r : l;
+      if (tomb.n[id] && tomb.n[id] >= syVer(w)) return;
+      if (w.del && w.del < cut) return;
+      outN.push(w);
+      if (l && r && lo && syVer(l) > last && syVer(r) > last && !w.del && !lo.del && !w.lk && !lo.lk && lo.t !== w.t && (lo.t || '').trim()) {
+        var vv = Math.max(syVer(l), syVer(r)), cp = { id: 'c' + syHash(id + '|' + lo.t + '|' + syVer(lo)), t: syCopyTitle(lo.t), ts: vv, ed: vv, mt: vv }; if (lo.f) cp.f = lo.f; if (!ids['c' + syHash(id + '|' + lo.t + '|' + syVer(lo))]) outN.push(cp);
+      }
+    });
+    /* pastas */
+    var lf = {}, rf = {}, fid = {}, outF = [];
+    L.f.forEach(function (x) { lf[x.id] = x; fid[x.id] = 1; }); (R.f || []).forEach(function (x) { rf[x.id] = x; fid[x.id] = 1; });
+    Object.keys(fid).forEach(function (id) {
+      var l = lf[id], r = rf[id], w = !r ? l : !l ? r : (syVer(r) > syVer(l) ? r : l);
+      if (tomb.f[id] && tomb.f[id] >= syVer(w)) return; outF.push(w);
+    });
+    /* chave das notas trancadas: só a parte protegida por senha (o Face ID é de cada aparelho) */
+    var vault = L.vault || null, vadopt = false, vclash = false, rv = R.vault && R.vault.wp ? R.vault : null;
+    if (rv && !vault) { vault = { v: rv.v, salt: rv.salt, iter: rv.iter, wp: rv.wp }; vadopt = true; }
+    else if (rv && vault && rv.salt !== vault.salt) vclash = true;
+    var pub = vault ? { v: vault.v, salt: vault.salt, iter: vault.iter, wp: vault.wp } : null;
+    var chT = syStr(outT, 'key') !== syStr(L.t, 'key'), chN = syStr(outN, 'id') !== syStr(L.n, 'id') || syStr(outF, 'id') !== syStr(L.f, 'id');
+    var up = syStr(outT, 'key') !== syStr(R.t || [], 'key') || syStr(outN, 'id') !== syStr(R.n || [], 'id') || syStr(outF, 'id') !== syStr(R.f || [], 'id') || JSON.stringify(pub) !== JSON.stringify(R.vault || null) || JSON.stringify(tomb) !== JSON.stringify(R.tomb || {});
+    var gotT = outT.filter(function (x) { return !lm[x.key] || syTv(lm[x.key]) !== syTv(x); }).length, gotN = outN.filter(function (x) { return !ln[x.id] || ln[x.id] !== x; }).length;
+    return { t: outT, n: outN, f: outF, tomb: tomb, vault: vault, pub: pub, vadopt: vadopt, vclash: vclash, chLocal: chT || chN || vadopt, up: up, gotT: gotT, gotN: gotN };
+  }
+  function syApply(res) {
+    sy.applying = true;
+    try {
+      items = res.t.map(function (x) { var o = { key: x.key, n: x.n, t: x.t, ts: x.ts }; if (x.ed) o.ed = x.ed; return o; }); sortItems(); saveLocal();
+      nts.notes = res.n; nts.folders = res.f; ntsSave();
+      if (res.vadopt) vPut(res.vault);
+      syTombPut(res.tomb);
+      if (nts.el && nts.view === 'list') { ntsChips(); ntsRows(); }
+    } finally { sy.applying = false; }
+  }
+  function syMsg(r) {
+    if (r.gotT || r.gotN) { var p = []; if (r.gotT) p.push(r.gotT + (r.gotT === 1 ? ' pensamento' : ' pensamentos')); if (r.gotN) p.push(r.gotN + (r.gotN === 1 ? ' nota' : ' notas')); return 'sincronizado · atualizados: ' + p.join(' e ') + '.'; }
+    return 'sincronizado · tudo em dia.';
+  }
+  function syErr(e) {
+    if (e && e.badkey) return 'a senha de sincronização não abre o arquivo da nuvem. se você a trocou em outro aparelho, desative aqui e ative de novo com a senha atual.';
+    if (e && e.badfile) return 'o arquivo de sincronização na nuvem está ilegível. apague a cópia da nuvem e ative de novo.';
+    if (e && e.auth) return 'entre no Emrys Cloud para sincronizar (/nuvem).';
+    return clMsg(e);
+  }
+  function syRun(manual) {
+    var c = syCfg();
+    if (!c) return Promise.resolve({ ok: false, err: 'a sincronização não está ativada. use /sync.' });
+    if (mode !== 'local') return Promise.resolve({ ok: false, err: 'a sincronização só funciona no app instalado (modo “neste aparelho”).' });
+    var s = clLoadS();
+    if (!s) { sy.err = 'entre no Emrys Cloud para sincronizar (/nuvem).'; return Promise.resolve({ ok: false, err: sy.err }); }
+    if (c.uid && s.uid && c.uid !== s.uid) { sy.err = 'esta sincronização foi ativada com outra conta da nuvem. desative e ative de novo.'; return Promise.resolve({ ok: false, err: sy.err }); }
+    if (nts.cur) { sy.dirty = true; return Promise.resolve({ ok: false, err: 'feche a nota aberta e tente de novo.' }); }
+    if (sy.busy) { sy.again = true; return Promise.resolve({ ok: false, err: 'já está sincronizando.' }); }
+    sy.busy = true; sy.err = ''; sy.dirty = false; clearTimeout(sy.timer);
+    var started = Date.now(), pre = nts.el ? ntsFlush() : Promise.resolve();
+    return pre.then(function () { return syGet(); }).then(function (raw) {
+      return (raw ? syUnpack(c, raw) : Promise.resolve(null)).then(function (R) {
+        var L = syCollect(c), res = syMerge(L, R, c.last || 0);
+        if (res.chLocal || L.stamped) syApply(res);
+        var done = function () {
+          c.last = Date.now(); c.uid = s.uid; c.sg = { n: {}, f: {} };
+          nts.notes.forEach(function (o) { c.sg.n[o.id] = sySig(o, 'n'); }); nts.folders.forEach(function (o) { c.sg.f[o.id] = sySig(o, 'f'); });
+          c.cnt = { t: items.length, n: nts.notes.filter(function (x) { return !x.del; }).length };
+          sySet(c); sy.last = started;
+          if (res.vclash) sy.err = 'atenção: as notas trancadas deste aparelho usam outra senha que as do outro aparelho. as trancadas de lá não abrirão aqui.';
+          return { ok: true, gotT: res.gotT, gotN: res.gotN, clash: res.vclash };
+        };
+        if (!raw || res.up) {
+          return syPack(c, { v: 1, ts: Date.now(), t: res.t, n: res.n, f: res.f, tomb: res.tomb, vault: res.pub }).then(syPut).then(done);
+        }
+        return done();
+      });
+    }).catch(function (e) { sy.err = syErr(e); return { ok: false, err: sy.err, e: e }; }).then(function (r) {
+      sy.busy = false;
+      if (sy.again) { sy.again = false; syKick(); }
+      if (cl.el && cl.view === 'sync') clRender();
+      return r;
+    });
+  }
+  /* ativar: com arquivo já existente a senha precisa abri-lo; sem arquivo, cria um novo */
+  function syEnable(p1, p2) {
+    if (!(window.crypto && crypto.subtle)) return Promise.reject(new Error('este navegador não consegue cifrar aqui.'));
+    if (!clLoadS()) return Promise.reject(new Error('entre no Emrys Cloud primeiro.'));
+    var s = cl.s || clLoadS(), c = { on: 1, uid: s.uid, last: 0 };
+    return clToken().then(function () { return syGet(); }).then(function (raw) {
+      if (raw) {
+        var f; try { f = JSON.parse(raw); } catch (e) { var er = new Error('o arquivo na nuvem está ilegível.'); throw er; }
+        c.salt = f.salt; c.iter = f.iter || SY_ITER;
+        return syDerive(p1, c.salt, c.iter).then(function (kb) { c.kb = kb; return syUnpack(c, raw); }).then(function () { return c; });
+      }
+      if (p1.length < 8) throw new Error('use pelo menos 8 caracteres na senha de sincronização.');
+      if (p1 !== p2) throw new Error('as senhas não são iguais.');
+      c.salt = b64e(vRand(16)); c.iter = SY_ITER;
+      return syDerive(p1, c.salt, c.iter).then(function (kb) { c.kb = kb; return c; });
+    }).then(function (c2) { sySet(c2); return syRun(true); }).then(function (r) { if (!r.ok) { throw new Error(r.err); } return r; }, function (e) {
+      if (e && e.badkey) throw new Error('senha incorreta. use a mesma senha de sincronização do outro aparelho.');
+      throw e;
+    });
+  }
+  function cmdSync(a) {
+    var c = syCfg(); a = (a || '').trim().toLowerCase();
+    if (c && a !== 'config' && a !== 'ajustes') {
+      if (!clLoadS()) { say('err', 'entre no Emrys Cloud primeiro: /nuvem'); return; }
+      say('dim', 'sincronizando…');
+      syRun(true).then(function (r) { if (r.ok) say('ok', syMsg(r)); else say('err', r.err); });
+      return;
+    }
+    cl.next = 'sync'; cmdCloud();
+  }
+  function clSyncView(card) {
+    var c = syCfg(), msg;
+    card.appendChild(h('h2', null, 'Sincronização'));
+    var info = function (t, cls) { var p = h('p', 'drv-p' + (cls ? ' ' + cls : ''), t); card.appendChild(p); return p; };
+    if (!c) {
+      info('Mantenha pensamentos e notas iguais em todos os seus aparelhos. Tudo é cifrado aqui, antes de subir: a nuvem só guarda dados ilegíveis.');
+      info('Escolha uma senha de sincronização. Use a mesma nos outros aparelhos. Ela é diferente da senha da nuvem e do login.');
+      info('Atenção: se você esquecer essa senha, a cópia da nuvem não pode ser lida (nem por mim). Seus dados neste aparelho continuam intactos.', 'err');
+      var a = clInput('password', 'senha de sincronização (mín. 8)', 'new-password'), b = clInput('password', 'repita (só na primeira vez)', 'new-password');
+      clForm(card, [a, b], 'ativar sincronização', 'sync', function (say2) {
+        if (!a.value) return say2('digite a senha de sincronização.');
+        return syEnable(a.value, b.value).then(function (r) { cl.msg = syMsg(r); cl.good = true; cl.view = 'sync'; clRender(); }, function (e) { say2(e.message || syErr(e)); });
+      });
+      return;
+    }
+    info('Ativa neste aparelho · ' + (c.last ? 'última vez: ' + fmt(c.last) : 'ainda não sincronizou') + (c.cnt ? ' · ' + c.cnt.t + ' pensamentos, ' + c.cnt.n + ' notas' : '') + '.');
+    info('Cifrado com AES-256 antes de sair do aparelho. Notas trancadas continuam trancadas com a senha delas.');
+    if (sy.err) info(sy.err, 'err');
+    if (cl.msg) { info(cl.msg, cl.good ? '' : 'err'); cl.msg = ''; cl.good = false; }
+    var acts = h('div', 'cld-acts');
+    acts.append(
+      cBtn('sync', sy.busy ? 'sincronizando…' : 'sincronizar agora', function () { syRun(true).then(function (r) { cl.msg = r.ok ? syMsg(r) : ''; cl.good = !!r.ok; if (cl.el && cl.view === 'sync') clRender(); }); }, 'pri big'),
+      cBtn('x', 'desativar neste aparelho', function () { if (!window.confirm('Parar de sincronizar neste aparelho? Seus dados aqui e a cópia da nuvem ficam como estão.')) return; sySet(null); sy.err = ''; cl.msg = 'sincronização desativada neste aparelho.'; cl.good = true; clRender(); }, 'drv-quiet'),
+      cBtn('trash', 'apagar a cópia da nuvem', function () {
+        if (!window.confirm('Apagar a cópia sincronizada da nuvem? Os dados deste aparelho não são apagados, mas outros aparelhos perdem a ligação.')) return;
+        clToken().then(syDel).then(function () { sySet(null); sy.err = ''; cl.msg = 'cópia da nuvem apagada. sincronização desativada.'; cl.good = true; clRender(); }).catch(function (e) { cl.msg = clMsg(e); cl.good = false; clRender(); });
+      }, 'drv-quiet'));
+    card.appendChild(acts);
+  }
+  document.addEventListener('visibilitychange', function () {
+    var c = syCfg(); if (!c || term.hidden) return;
+    if (document.hidden) { if (sy.dirty && !nts.cur) syRun(false); }
+    else if (Date.now() - (sy.last || c.last || 0) > 60000) syRun(false);
+  });
+  function syBoot() { setTimeout(function () { var c = syCfg(); if (c && clLoadS()) syRun(false).then(function (r) { if (r.ok && (r.gotT || r.gotN)) say('dim', syMsg(r)); }); }, 1200); }
+
+  /* ---------- Emrys Intelligence (v1.26) ----------
+     Chat com IA. O app só fala com a Edge Function "emrys-ai" do seu Supabase, usando o token de quem está logado.
+     A chave da IA vive como secret no Supabase; nada de chave neste arquivo. O provedor (Gemini, Groq, OpenRouter,
+     Anthropic…) é escolhido no servidor, sem mudar o app. */
+  var AI_FN = CL_URL + '/functions/v1/emrys-ai', AI_LAST = 'emrys.ai.last';
+  CI.spark = SVG('<path d="M12 3l1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9zM18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/>');
+  CI.chats = SVG('<path d="M4 5h16v11H9l-5 4zM8 9h8M8 12h5"/>');
+  CI.send = SVG('<path d="M4 12l16-8-6 16-3-7z"/>');
+  var ai = { el: null, view: 'chat', cur: null, title: '', msgs: [], convs: null, busy: false, req: 0, err: '', setup: false, left: null, vv: null, failed: '' };
+  function aiLastGet() { try { return localStorage.getItem(AI_LAST) || ''; } catch (e) { return ''; } }
+  function aiLastSet(id) { try { if (id) localStorage.setItem(AI_LAST, id); else localStorage.removeItem(AI_LAST); } catch (e) {} }
+  function aiIsSetupErr(e) { return e && (e.status === 404 || /PGRST205|42P01|relation .* does not exist|Could not find the table/i.test((e.code || '') + ' ' + (e.message || ''))); }
+  function aiCopy(text, btn) {
+    var done = function () { var s = btn.querySelector('span:last-child'); if (!s) return; var o = s.textContent; s.textContent = 'copiado'; setTimeout(function () { s.textContent = o; }, 1500); };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, function () { aiCopyOld(text); done(); }); return; } } catch (e) {}
+    aiCopyOld(text); done();
+  }
+  function aiCopyOld(text) {
+    var t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px';
+    document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove();
+  }
+  /* texto da IA → elementos (sem innerHTML): parágrafos, listas, **negrito**, `código` e blocos ``` */
+  function aiInline(parent, text) {
+    var re = /(`[^`\n]+`|\*\*[^*\n]+\*\*)/g, last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
+      var tok = m[0];
+      if (tok.charAt(0) === '`') parent.appendChild(h('code', null, tok.slice(1, -1))); else parent.appendChild(h('strong', null, tok.slice(2, -2)));
+      last = m.index + tok.length;
+    }
+    if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+  function aiRender(text) {
+    var fr = document.createDocumentFragment(), re = /```([\w+#.-]*)[ \t]*\n?([\s\S]*?)(```|$)/g, last = 0, m;
+    var prose = function (t) {
+      t.split(/\n{2,}/).forEach(function (blk) {
+        blk = blk.replace(/^\n+|\n+$/g, ''); if (!blk) return;
+        var lines = blk.split('\n'), isUl = lines.every(function (l) { return /^\s*[-*•]\s+/.test(l); }), isOl = lines.every(function (l) { return /^\s*\d+[.)]\s+/.test(l); });
+        if (isUl || isOl) {
+          var ul = h(isOl ? 'ol' : 'ul', 'ai-list');
+          lines.forEach(function (l) { var li = h('li'); aiInline(li, l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '')); ul.appendChild(li); });
+          fr.appendChild(ul); return;
+        }
+        var p = h('p', 'ai-p');
+        lines.forEach(function (l, i) { if (i) p.appendChild(document.createElement('br')); aiInline(p, l); });
+        fr.appendChild(p);
+      });
+    };
+    while ((m = re.exec(text))) {
+      if (m.index > last) prose(text.slice(last, m.index));
+      var code = m[2].replace(/\n$/, ''), box = h('div', 'ai-code'), bar = h('div', 'ai-codebar');
+      bar.appendChild(h('span', null, m[1] || 'código'));
+      var cb = h('button', 'ai-cp'); cb.type = 'button'; cb.append(cIco('copy'), h('span', null, 'copiar')); cb.addEventListener('click', function (c) { return function () { aiCopy(c, cb); }; }(code));
+      bar.appendChild(cb); box.append(bar, h('pre', null, code)); fr.appendChild(box);
+      last = m.index + m[0].length; if (m[0].length === 0) break;
+    }
+    if (last < text.length) prose(text.slice(last));
+    return fr;
+  }
+  function aiTime(ts) { var d = new Date(ts); return isNaN(d) ? '' : p2(d.getHours()) + ':' + p2(d.getMinutes()); }
+
+  /* ---- abrir / fechar ---- */
+  function cmdIA() {
+    if (ai.el) return;
+    if (!clLoadS()) { cl.next = 'ia'; cmdCloud(); return; }
+    var el = h('section', 'drv ai'); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Emrys Intelligence');
+    document.body.appendChild(el); ai.el = el; ai.view = 'chat'; ai.cur = null; ai.title = ''; ai.msgs = []; ai.err = ''; ai.setup = false; ai.left = null; ai.convs = null; ai.busy = false;
+    try { inp.blur(); } catch (e) {}
+    if (window.visualViewport) { ai.vv = function () { aiFit(); }; window.visualViewport.addEventListener('resize', ai.vv); window.visualViewport.addEventListener('scroll', ai.vv); }
+    aiRender2();
+    var last = aiLastGet();
+    if (last) aiOpen(last, true);
+    aiLoadList();
+  }
+  function aiClose() {
+    if (!ai.el) return;
+    if (window.visualViewport && ai.vv) { window.visualViewport.removeEventListener('resize', ai.vv); window.visualViewport.removeEventListener('scroll', ai.vv); }
+    ai.vv = null; ai.req++; ai.el.remove(); ai.el = null;
+    try { if (window.matchMedia('(pointer: fine)').matches) inp.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function aiFit() {
+    var vv = window.visualViewport; if (!ai.el || !vv) return;
+    ai.el.style.height = vv.height + 'px'; ai.el.style.bottom = 'auto'; ai.el.style.top = vv.offsetTop + 'px';
+    var b = $('ai-msgs'); if (b && ai.view === 'chat') b.scrollTop = b.scrollHeight;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !ai.el) return;
+    if (ai.view === 'list') { ai.view = 'chat'; aiRender2(); return; }
+    aiClose();
+  });
+
+  /* ---- dados (PostgREST com o token do usuário; o banco só entrega o que é dele) ---- */
+  function aiLoadList() {
+    return clApi('GET', '/rest/v1/ai_conversations?select=id,title,updated_at&order=updated_at.desc&limit=100').then(function (r) {
+      ai.convs = r || []; ai.setup = false; if (ai.el && ai.view === 'list') aiRender2(); else aiSubbar();
+    }, function (e) {
+      if (aiIsSetupErr(e)) { ai.setup = true; ai.convs = []; if (ai.el) aiRender2(); } else if (ai.el && ai.view === 'list') { ai.err = clMsg(e); aiRender2(); }
+    });
+  }
+  function aiOpen(id, quiet) {
+    var my = ++ai.req; ai.busy = true; ai.err = '';
+    return clApi('GET', '/rest/v1/ai_messages?conversation_id=eq.' + encodeURIComponent(id) + '&select=id,role,content,created_at&order=created_at.asc&limit=500').then(function (rows) {
+      if (my !== ai.req || !ai.el) return;
+      ai.busy = false;
+      if (!rows || !rows.length) { if (quiet) { ai.cur = null; ai.msgs = []; aiLastSet(''); } else ai.err = 'conversa vazia ou apagada.'; aiRender2(); return; }
+      ai.cur = id; ai.msgs = rows.map(function (m) { return { role: m.role, content: m.content, at: Date.parse(m.created_at) || 0 }; }); ai.view = 'chat';
+      var c = (ai.convs || []).filter(function (x) { return x.id === id; })[0]; ai.title = c ? c.title : ''; aiLastSet(id); aiRender2(true);
+    }, function (e) {
+      if (my !== ai.req || !ai.el) return; ai.busy = false;
+      if (aiIsSetupErr(e)) ai.setup = true; else if (!quiet) ai.err = clMsg(e);
+      aiRender2();
+    });
+  }
+  function aiNew() { if (ai.busy) return; ai.req++; ai.cur = null; ai.title = ''; ai.msgs = []; ai.err = ''; ai.view = 'chat'; aiLastSet(''); aiRender2(); }
+  function aiDelete(id) {
+    if (!window.confirm('Apagar esta conversa? Isso não pode ser desfeito.')) return;
+    clApi('DELETE', '/rest/v1/ai_conversations?id=eq.' + encodeURIComponent(id)).then(function () {
+      ai.convs = (ai.convs || []).filter(function (c) { return c.id !== id; });
+      if (ai.cur === id) { ai.cur = null; ai.msgs = []; ai.title = ''; aiLastSet(''); }
+      if (ai.el) aiRender2();
+    }).catch(function (e) { ai.err = clMsg(e); if (ai.el) aiRender2(); });
+  }
+  function aiDeleteAll() {
+    if (!ai.convs || !ai.convs.length) return;
+    if (!window.confirm('Apagar TODAS as ' + ai.convs.length + ' conversas? Isso não pode ser desfeito.')) return;
+    var uid = (clLoadS() || {}).uid; if (!uid) return;
+    clApi('DELETE', '/rest/v1/ai_conversations?user_id=eq.' + encodeURIComponent(uid)).then(function () {
+      ai.convs = []; ai.cur = null; ai.msgs = []; ai.title = ''; aiLastSet(''); if (ai.el) aiRender2();
+    }).catch(function (e) { ai.err = clMsg(e); if (ai.el) aiRender2(); });
+  }
+  function aiFnErr(status, j) {
+    var code = j && j.error, msg = j && j.message;
+    if (status === 404 && !code) return 'a Edge Function “emrys-ai” ainda não foi publicada no Supabase. siga o GUIA-IA.txt.';
+    if (code === 'db_setup') ai.setup = true;
+    return msg || 'não foi possível falar com a IA agora. tente de novo.';
+  }
+  function aiSend(text, retry) {
+    if (ai.busy || !ai.el) return;
+    ai.err = ''; ai.busy = true;
+    if (!retry) ai.msgs.push({ role: 'user', content: text, at: Date.now() });
+    var my = ++ai.req, conv = ai.cur;
+    aiRender2(true);
+    clToken().then(function (t) {
+      var ctrl = new AbortController(), timer = setTimeout(function () { ctrl.abort(); }, 70000);
+      return fetch(AI_FN, { method: 'POST', headers: { apikey: CL_KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: conv, message: text }), signal: ctrl.signal })
+        .then(function (r) { clearTimeout(timer); return r.text().then(function (tx) { var j = null; try { j = JSON.parse(tx); } catch (e) {} if (!r.ok) { var er = new Error(aiFnErr(r.status, j)); er.fn = true; er.status = r.status; throw er; } return j; }); },
+          function (e) { clearTimeout(timer); var er = new Error(e && e.name === 'AbortError' ? 'a IA demorou demais para responder. tente de novo.' : 'sem conexão. verifique a internet e tente de novo.'); er.fn = true; throw er; });
+    }).then(function (j) {
+      if (my !== ai.req || !ai.el) return;
+      ai.busy = false; ai.cur = j.conversation_id; ai.title = j.title || ai.title; ai.left = typeof j.remaining === 'number' ? j.remaining : ai.left;
+      ai.msgs.push({ role: 'assistant', content: j.reply.content, at: Date.parse(j.reply.created_at) || Date.now() });
+      if (j.saved === false) ai.err = 'a resposta chegou, mas não consegui salvá-la no histórico.';
+      else aiLastSet(ai.cur);
+      aiRender2(true); aiLoadList();
+    }).catch(function (e) {
+      if (my !== ai.req || !ai.el) return;
+      ai.busy = false; ai.failed = text;
+      ai.err = e && e.fn ? e.message : e && e.auth ? 'sua sessão expirou. feche e entre de novo pelo Emrys Cloud (/nuvem).' : clMsg(e);
+      aiRender2(true);
+    });
+  }
+
+  /* ---- interface ---- */
+  function aiSubbar() { var n = $('ai-count'); if (n) n.textContent = ai.convs ? String(ai.convs.length) : ''; }
+  function aiShell(list) {
+    var el = ai.el; el.textContent = '';
+    var top = h('header', 'drv-top');
+    top.append(cBtn('x', '', aiClose, 'drv-ib', 'fechar'));
+    var ttl = h('div', 'drv-title ai-ttl'); ttl.append(cIco('spark'), h('span', null, 'Emrys Intelligence')); top.appendChild(ttl);
+    top.appendChild(cBtn('plus', '', aiNew, 'drv-ib', 'nova conversa'));
+    el.append(top, h('div', 'drv-orn', '✦'));
+    return el;
+  }
+  function aiRender2(keepScroll) {
+    if (!ai.el) return;
+    var prevTop = null, old = $('ai-msgs'); if (old && keepScroll === 'keep') prevTop = old.scrollTop;
+    var typed = ''; var oldIn = $('ai-in'); if (oldIn) typed = oldIn.value;
+    var el = aiShell();
+    if (ai.view === 'list') return aiListView(el);
+    var sub = h('div', 'ai-sub');
+    var cb = cBtn('chats', 'conversas', function () { ai.view = 'list'; ai.err = ''; aiRender2(); if (!ai.convs) aiLoadList(); }, 'drv-quiet'); var ct = h('span', 'ai-count'); ct.id = 'ai-count'; ct.textContent = ai.convs ? String(ai.convs.length) : ''; cb.appendChild(ct);
+    sub.appendChild(cb); sub.appendChild(h('span', 'ai-cur', ai.title || (ai.cur ? '' : 'nova conversa')));
+    if (ai.cur) sub.appendChild(cBtn('trash', '', function () { aiDelete(ai.cur); }, 'drv-quiet', 'apagar esta conversa'));
+    el.appendChild(sub);
+    var box = h('div', 'ai-msgs'); box.id = 'ai-msgs'; box.setAttribute('aria-live', 'polite'); el.appendChild(box);
+    if (ai.setup) {
+      var cd = h('div', 'drv-card'); cd.appendChild(h('h2', null, 'Falta um passo no Supabase'));
+      cd.appendChild(h('p', 'drv-p', 'As tabelas do histórico ainda não existem. Rode o arquivo SQL do GUIA-IA.txt no SQL Editor do Supabase e abra o Emrys Intelligence de novo.'));
+      box.appendChild(cd);
+    } else if (!ai.msgs.length && !ai.busy) {
+      var em = h('div', 'ai-empty');
+      em.appendChild(h('div', 'ai-spark')); em.firstChild.appendChild(cIco('spark'));
+      em.appendChild(h('h2', null, 'Como posso ajudar?'));
+      em.appendChild(h('p', null, 'Converse para organizar ideias, escrever ou resumir. Não envie senhas. Ele não vê seus pensamentos nem suas notas, a menos que você cole aqui.'));
+      var chips = h('div', 'ai-chips');
+      ['Me ajude a organizar uma ideia confusa', 'Escreva comigo sobre o meu dia', 'Resuma este texto em 3 linhas'].forEach(function (t) {
+        var c = h('button', 'ai-chip', t); c.type = 'button'; c.addEventListener('click', function () { var i = $('ai-in'); i.value = t; i.focus(); aiGrow(i); }); chips.appendChild(c);
+      });
+      em.appendChild(chips); box.appendChild(em);
+    }
+    ai.msgs.forEach(function (m) { box.appendChild(aiBubble(m)); });
+    if (ai.busy && ai.msgs.length) { var ty = h('div', 'ai-m a ai-typing'); ty.setAttribute('aria-label', 'a IA está respondendo'); ty.append(h('i'), h('i'), h('i')); box.appendChild(ty); }
+    if (ai.err) {
+      var er = h('div', 'ai-err'); er.setAttribute('role', 'alert'); er.appendChild(h('span', null, ai.err));
+      if (ai.failed && ai.msgs.length && ai.msgs[ai.msgs.length - 1].role === 'user') { var rt = cBtn('restore', 'tentar de novo', function () { var t = ai.failed; ai.failed = ''; aiSend(t, true); }, 'drv-quiet'); er.appendChild(rt); }
+      box.appendChild(er);
+    }
+    var form = h('form', 'ai-composer'); form.addEventListener('submit', function (e) { e.preventDefault(); aiSubmit(); });
+    var ta = h('textarea', 'ai-in'); ta.id = 'ai-in'; ta.rows = 1; ta.placeholder = 'Pergunte alguma coisa…'; ta.maxLength = 4000; ta.setAttribute('aria-label', 'mensagem'); ta.autocomplete = 'off'; ta.value = typed; ta.disabled = ai.busy || ai.setup;
+    ta.addEventListener('input', function () { aiGrow(ta); });
+    ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(pointer: fine)').matches) { e.preventDefault(); aiSubmit(); } });
+    var sb = cBtn('send', '', function () {}, 'drv-ib ai-send', 'enviar'); sb.type = 'submit'; sb.disabled = ai.busy || ai.setup;
+    form.append(ta, sb); el.appendChild(form);
+    el.appendChild(h('div', 'ai-note', 'respostas de IA podem conter erros' + (ai.left != null ? ' · restam ' + ai.left + ' mensagens hoje' : '')));
+    aiGrow(ta);
+    var mb = $('ai-msgs'); if (prevTop != null) mb.scrollTop = prevTop; else mb.scrollTop = mb.scrollHeight;
+    if (!ai.busy && !ai.setup && window.matchMedia('(pointer: fine)').matches) { try { ta.focus({ preventScroll: true }); } catch (e) {} }
+    aiFit();
+  }
+  function aiGrow(t) { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 150) + 'px'; }
+  function aiSubmit() {
+    var ta = $('ai-in'); if (!ta || ai.busy) return; var v = ta.value.trim(); if (!v) return;
+    ta.value = ''; ai.failed = ''; aiSend(v);
+  }
+  function aiBubble(m) {
+    if (m.role === 'user') { var u = h('div', 'ai-m u'); u.appendChild(h('div', 'ai-txt', m.content)); return u; }
+    var a = h('div', 'ai-m a'), tx = h('div', 'ai-txt'); tx.appendChild(aiRender(m.content)); a.appendChild(tx);
+    var act = h('div', 'ai-act'), cp = h('button', 'ai-cp'); cp.type = 'button'; cp.setAttribute('aria-label', 'copiar resposta'); cp.append(cIco('copy'), h('span', null, 'copiar'));
+    cp.addEventListener('click', function () { aiCopy(m.content, cp); });
+    act.append(cp, h('span', 'ai-time', aiTime(m.at))); a.appendChild(act); return a;
+  }
+  function aiListView(el) {
+    var sub = h('div', 'ai-sub'); sub.appendChild(cBtn('up', 'voltar ao chat', function () { ai.view = 'chat'; aiRender2(); }, 'drv-quiet'));
+    if (ai.convs && ai.convs.length) sub.appendChild(cBtn('trash', 'apagar todas', aiDeleteAll, 'drv-quiet')); el.appendChild(sub);
+    var body = h('div', 'drv-body'); el.appendChild(body);
+    if (ai.err) { body.appendChild(h('p', 'drv-p err', ai.err)); ai.err = ''; }
+    if (ai.setup) { body.appendChild(h('p', 'drv-p err', 'As tabelas do histórico ainda não existem. Rode o SQL do GUIA-IA.txt no Supabase.')); return; }
+    if (!ai.convs) { body.appendChild(h('p', 'drv-p', 'carregando…')); return; }
+    if (!ai.convs.length) { body.appendChild(h('p', 'drv-p', 'nenhuma conversa ainda.')); return; }
+    var ls = h('div', 'drv-list');
+    ai.convs.forEach(function (c) {
+      var row = h('div', 'ai-conv'), main = h('button', 'drv-row'); main.type = 'button';
+      var tx = h('span', 'drv-tx'); tx.append(h('span', 'drv-name', c.title || 'Conversa'), h('span', 'drv-meta', ntsDate(Date.parse(c.updated_at) || 0)));
+      main.append(cIco('chats'), tx); main.addEventListener('click', function () { ai.view = 'chat'; ai.title = c.title; aiOpen(c.id); });
+      row.append(main, cBtn('trash', '', function () { aiDelete(c.id); }, 'drv-ib', 'apagar conversa')); ls.appendChild(row);
+    });
+    body.appendChild(ls);
+  }
+
   var CMDS = [
     { n: 'ajuda', al: ['help', '?'], u: '/ajuda', d: 'mostra esta lista', run: cmdAjuda },
     { n: 'listar', al: ['ls', 'l'], u: '/listar [n|tudo]', d: 'últimos pensamentos (quantidade em /config)', run: cmdListar },
@@ -3637,8 +3789,9 @@ body {
     { n: 'site', al: ['up', 'online'], u: '/site <endereço...>', d: 'verifica se sites estão no ar', run: cmdSite },
     { n: 'notas', al: ['nota', 'notes', 'bloco'], u: '/notas', d: 'bloco de notas (pastas, fixar, tarefas)', run: cmdNotas },
     { n: 'nuvem', al: ['cloud', 'emryscloud'], u: '/nuvem', d: 'Emrys Cloud: seus arquivos privados na nuvem (Supabase)', run: cmdCloud },
+    { n: 'sync', al: ['sincronizar', 'sincronia'], u: '/sync', d: 'sincroniza pensamentos e notas entre aparelhos (cifrado)', run: cmdSync },
+    { n: 'ia', al: ['ai', 'intelligence', 'chat', 'ajudante'], u: '/ia', d: 'Emrys Intelligence: chat com IA (histórico, copiar, apagar)', run: cmdIA },
     { n: 'cofre', al: ['arquivos', 'files', 'vault'], u: '/cofre', d: 'arquivos pessoais guardados neste aparelho', run: cmdCofre },
-    { n: 'drive', al: ['gdrive'], u: '/drive', d: 'seus arquivos do Google Drive (somente leitura)', run: cmdDrive },
     { n: 'config', al: ['configurar', 'cfg', 'ajustes'], u: '/config', d: 'aparência e comportamento do programa', run: cmdConfig },
     { n: 'backup', al: ['salvar'], u: '/backup', d: 'gera uma cópia completa para guardar', run: cmdBackup },
     { n: 'restaurar', al: ['importar', 'restore'], u: '/restaurar', d: 'volta pensamentos de uma cópia', run: cmdRestaurar },
@@ -3861,9 +4014,12 @@ body {
       say('dim', 'nenhum pensamento guardado ainda. escreva o primeiro abaixo.');
     }
     gap();
-    var ql = document.createElement('div'); ql.className = 'ctl';
-    [['Notas', cmdNotas], ['Cofre', cmdCofre], ['Nuvem', cmdCloud], ['Drive', cmdDrive]].forEach(function (b) { ql.appendChild(mkBtn(b[0], b[1])); });
-    add(ql); gap();
+    var ql = document.createElement('div'); ql.className = 'qk';
+    [['Notas', cmdNotas, NI.note], ['Cofre de arquivos', cmdCofre, CI.vault], ['Emrys Cloud', cmdCloud, CI.cloud], ['Emrys Intelligence', cmdIA, CI.spark]].forEach(function (b) {
+      var q = document.createElement('button'); q.type = 'button'; q.className = 'qkb'; q.title = b[0]; q.setAttribute('aria-label', b[0]);
+      var s = document.createElement('span'); s.className = 'drv-ico'; s.innerHTML = b[2]; q.appendChild(s); q.addEventListener('click', function () { b[1](); }); ql.appendChild(q);
+    });
+    add(ql);
     if (mode === 'cloud') say('ok', '● cofre privado ativo. seus pensamentos ficam guardados na sua conta, não neste aparelho.');
     else say('dim', '○ guardado só neste aparelho. use /backup para ter uma cópia.');
   }
@@ -4027,8 +4183,8 @@ body {
       modeEl.textContent = mode === 'cloud' ? 'cofre privado' : 'neste aparelho';
       welcome();
       inp.disabled = false;
-      var dst = drvLoad(); if (dst.resume) { dst.resume = 0; drvSave(dst); cmdDrive(''); }
       if (CL_HASH) cmdCloud();
+      syBoot();
       if (window.matchMedia('(pointer: fine)').matches) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
     });
   }
