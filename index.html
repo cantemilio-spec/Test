@@ -689,6 +689,9 @@ body {
 .ai-send { height: 46px; width: 46px; border-color: var(--accent) !important; color: var(--accent); }
 .ai-send:disabled, .ai-in:disabled { opacity: 0.45; }
 .ai-note { flex: none; text-align: center; color: var(--dim); font-size: 0.68rem; padding: 2px 0 6px; }
+.ai-wait { color: var(--dim); font-size: 0.75rem; margin-left: 8px; }
+.ai-typing { align-items: center; }
+.ai-cancel { margin-left: auto; padding: 4px 8px; border: 1px solid var(--line) !important; color: var(--dim); font-size: 0.75rem; }
 @media (prefers-reduced-motion: reduce) { .ai-typing i, .ai-m { animation: none; } }
 .ai-conv { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
 .ai-conv .drv-row { flex: 1; min-width: 0; border-bottom: 0 !important; }
@@ -779,7 +782,7 @@ body {
 (function () {
   'use strict';
   var KEY = 'pensamentos.v2';
-  var VERSION = '1.26.0', BUILD = '2026-11-09';
+  var VERSION = '1.26.1', BUILD = '2026-11-09';
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out'), f = $('f'), inp = $('in'), modeEl = $('mode'), clock = $('clock');
   var MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -3530,7 +3533,7 @@ body {
   CI.spark = SVG('<path d="M12 3l1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9zM18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/>');
   CI.chats = SVG('<path d="M4 5h16v11H9l-5 4zM8 9h8M8 12h5"/>');
   CI.send = SVG('<path d="M4 12l16-8-6 16-3-7z"/>');
-  var ai = { el: null, view: 'chat', cur: null, title: '', msgs: [], convs: null, busy: false, req: 0, err: '', setup: false, left: null, vv: null, failed: '' };
+  var ai = { el: null, view: 'chat', cur: null, title: '', msgs: [], convs: null, busy: false, req: 0, err: '', setup: false, left: null, vv: null, failed: '', ctrl: null, tick: 0, t0: 0, canceled: false };
   function aiLastGet() { try { return localStorage.getItem(AI_LAST) || ''; } catch (e) { return ''; } }
   function aiLastSet(id) { try { if (id) localStorage.setItem(AI_LAST, id); else localStorage.removeItem(AI_LAST); } catch (e) {} }
   function aiIsSetupErr(e) { return e && (e.status === 404 || /PGRST205|42P01|relation .* does not exist|Could not find the table/i.test((e.code || '') + ' ' + (e.message || ''))); }
@@ -3584,7 +3587,8 @@ body {
   function aiTime(ts) { var d = new Date(ts); return isNaN(d) ? '' : p2(d.getHours()) + ':' + p2(d.getMinutes()); }
 
   /* ---- abrir / fechar ---- */
-  function cmdIA() {
+  function cmdIA(a) {
+    if (String(a || '').trim().toLowerCase() === 'teste') { aiDiag(); return; }
     if (ai.el) return;
     if (!clLoadS()) { cl.next = 'ia'; cmdCloud(); return; }
     var el = h('section', 'drv ai'); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Emrys Intelligence');
@@ -3599,7 +3603,7 @@ body {
   function aiClose() {
     if (!ai.el) return;
     if (window.visualViewport && ai.vv) { window.visualViewport.removeEventListener('resize', ai.vv); window.visualViewport.removeEventListener('scroll', ai.vv); }
-    ai.vv = null; ai.req++; ai.el.remove(); ai.el = null;
+    ai.vv = null; ai.req++; aiStopTick(); if (ai.ctrl) { try { ai.ctrl.abort(); } catch (e) {} } ai.ctrl = null; ai.el.remove(); ai.el = null;
     try { if (window.matchMedia('(pointer: fine)').matches) inp.focus({ preventScroll: true }); } catch (e) {}
   }
   function aiFit() {
@@ -3662,15 +3666,16 @@ body {
     if (ai.busy || !ai.el) return;
     ai.err = ''; ai.busy = true;
     if (!retry) ai.msgs.push({ role: 'user', content: text, at: Date.now() });
-    var my = ++ai.req, conv = ai.cur;
-    aiRender2(true);
+    var my = ++ai.req, conv = ai.cur; ai.canceled = false; ai.t0 = Date.now();
+    aiRender2(true); aiStartTick();
     clToken().then(function (t) {
-      var ctrl = new AbortController(), timer = setTimeout(function () { ctrl.abort(); }, 70000);
+      var ctrl = new AbortController(), timer = setTimeout(function () { ctrl.abort(); }, 60000); ai.ctrl = ctrl;
       return fetch(AI_FN, { method: 'POST', headers: { apikey: CL_KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: conv, message: text }), signal: ctrl.signal })
         .then(function (r) { clearTimeout(timer); return r.text().then(function (tx) { var j = null; try { j = JSON.parse(tx); } catch (e) {} if (!r.ok) { var er = new Error(aiFnErr(r.status, j)); er.fn = true; er.status = r.status; throw er; } return j; }); },
-          function (e) { clearTimeout(timer); var er = new Error(e && e.name === 'AbortError' ? 'a IA demorou demais para responder. tente de novo.' : 'sem conexão. verifique a internet e tente de novo.'); er.fn = true; throw er; });
+          function (e) { clearTimeout(timer); var er = new Error(ai.canceled ? 'pedido cancelado.' : e && e.name === 'AbortError' ? 'a IA demorou demais para responder. tente de novo.' : 'não consegui falar com o servidor (sem internet, função não publicada ou bloqueio de origem). digite /ia teste no terminal para diagnosticar.'); er.fn = true; throw er; });
     }).then(function (j) {
       if (my !== ai.req || !ai.el) return;
+      aiStopTick(); ai.ctrl = null;
       ai.busy = false; ai.cur = j.conversation_id; ai.title = j.title || ai.title; ai.left = typeof j.remaining === 'number' ? j.remaining : ai.left;
       ai.msgs.push({ role: 'assistant', content: j.reply.content, at: Date.parse(j.reply.created_at) || Date.now() });
       if (j.saved === false) ai.err = 'a resposta chegou, mas não consegui salvá-la no histórico.';
@@ -3678,6 +3683,7 @@ body {
       aiRender2(true); aiLoadList();
     }).catch(function (e) {
       if (my !== ai.req || !ai.el) return;
+      aiStopTick(); ai.ctrl = null;
       ai.busy = false; ai.failed = text;
       ai.err = e && e.fn ? e.message : e && e.auth ? 'sua sessão expirou. feche e entre de novo pelo Emrys Cloud (/nuvem).' : clMsg(e);
       aiRender2(true);
@@ -3723,7 +3729,12 @@ body {
       em.appendChild(chips); box.appendChild(em);
     }
     ai.msgs.forEach(function (m) { box.appendChild(aiBubble(m)); });
-    if (ai.busy && ai.msgs.length) { var ty = h('div', 'ai-m a ai-typing'); ty.setAttribute('aria-label', 'a IA está respondendo'); ty.append(h('i'), h('i'), h('i')); box.appendChild(ty); }
+    if (ai.busy && ai.msgs.length) {
+      var ty = h('div', 'ai-m a ai-typing'); ty.setAttribute('aria-label', 'a IA está respondendo'); ty.append(h('i'), h('i'), h('i'));
+      var wt = h('span', 'ai-wait'); wt.id = 'ai-wait'; var cc = h('button', 'ai-cancel', 'cancelar'); cc.type = 'button'; cc.id = 'ai-cancel'; cc.hidden = true;
+      cc.addEventListener('click', function () { ai.canceled = true; if (ai.ctrl) ai.ctrl.abort(); });
+      ty.append(wt, cc); box.appendChild(ty);
+    }
     if (ai.err) {
       var er = h('div', 'ai-err'); er.setAttribute('role', 'alert'); er.appendChild(h('span', null, ai.err));
       if (ai.failed && ai.msgs.length && ai.msgs[ai.msgs.length - 1].role === 'user') { var rt = cBtn('restore', 'tentar de novo', function () { var t = ai.failed; ai.failed = ''; aiSend(t, true); }, 'drv-quiet'); er.appendChild(rt); }
@@ -3740,6 +3751,13 @@ body {
     var mb = $('ai-msgs'); if (prevTop != null) mb.scrollTop = prevTop; else mb.scrollTop = mb.scrollHeight;
     if (!ai.busy && !ai.setup && window.matchMedia('(pointer: fine)').matches) { try { ta.focus({ preventScroll: true }); } catch (e) {} }
     aiFit();
+  }
+  function aiStartTick() { aiStopTick(); ai.tick = setInterval(aiTickNow, 1000); aiTickNow(); }
+  function aiStopTick() { if (ai.tick) { clearInterval(ai.tick); ai.tick = 0; } }
+  function aiTickNow() {
+    var w = $('ai-wait'); if (!w) return; var sec = Math.floor((Date.now() - ai.t0) / 1000);
+    w.textContent = sec < 3 ? '' : sec < 15 ? 'pensando… ' + sec + 's' : 'está demorando… ' + sec + 's';
+    var c = $('ai-cancel'); if (c) c.hidden = sec < 10;
   }
   function aiGrow(t) { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 150) + 'px'; }
   function aiSubmit() {
@@ -3771,6 +3789,34 @@ body {
     body.appendChild(ls);
   }
 
+  /* /ia teste: diz em que etapa o Emrys Intelligence está parando (sem mostrar nenhum segredo) */
+  function aiDiag() {
+    if (!clLoadS()) { say('err', 'entre no Emrys Cloud primeiro: /nuvem'); return; }
+    say('dim', 'testando o Emrys Intelligence… (até 30 s)'); var t0 = Date.now();
+    clToken().then(function (t) {
+      var ctrl = new AbortController(), timer = setTimeout(function () { ctrl.abort(); }, 35000);
+      return fetch(AI_FN, { method: 'POST', headers: { apikey: CL_KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'ping', live: true }), signal: ctrl.signal }).then(function (r) {
+        clearTimeout(timer); return r.text().then(function (tx) { var j = null; try { j = JSON.parse(tx); } catch (e) {} return { st: r.status, j: j, tx: tx }; });
+      }, function (e) { clearTimeout(timer); return { net: true, abort: e && e.name === 'AbortError' }; });
+    }).then(function (o) {
+      var ms = Date.now() - t0, j = o.j;
+      if (o.net) { say('err', o.abort ? '✗ a função não respondeu em 35 s.' : '✗ não alcancei a função. causas comuns: sem internet, função não publicada ou ALLOWED_ORIGINS sem https://cantemilio-spec.github.io.'); return; }
+      if (o.st === 404) { say('err', '✗ a função “emrys-ai” não está publicada neste projeto do Supabase.'); return; }
+      if (o.st === 401) { say('err', '✗ login recusado (' + ((j && (j.message || j.msg)) || '401') + '). se disser “Invalid JWT”, publique com --no-verify-jwt. senão, entre de novo na nuvem.'); return; }
+      if (o.st !== 200 || !j) { say('err', '✗ a função respondeu com erro ' + o.st + ': ' + String(o.tx || '').slice(0, 140)); return; }
+      say('ok', '✓ função publicada e login aceito (' + ms + ' ms no total)');
+      if (!j.configured) say('err', '✗ configuração: ' + j.config_error); else say('ok', '✓ provedor: ' + j.provider + ' · modelo: ' + j.model);
+      if (j.tables) say('ok', '✓ tabelas do histórico existem'); else say('err', '✗ tabelas do histórico não existem (rode o SQL do guia).');
+      if (j.live) {
+        if (j.live.ok) say('ok', '✓ a IA respondeu em ' + (j.live.ms / 1000).toFixed(1) + ' s');
+        else {
+          var why = { auth: 'chave inválida ou sem permissão (confira AI_API_KEY)', rate_limit: 'limite do plano gratuito atingido; tente mais tarde', bad_request: 'modelo inválido ou pedido recusado (confira AI_MODEL)', unavailable: 'serviço da IA fora do ar', empty: 'a IA respondeu vazio', timeout: 'a IA não respondeu em 25 s' }[j.live.kind] || 'erro desconhecido';
+          say('err', '✗ chamada à IA falhou: ' + why); if (j.live.detail) say('dim', '  detalhe do provedor: ' + j.live.detail);
+        }
+      }
+    }).catch(function (e) { say('err', '✗ ' + clMsg(e)); });
+  }
+
   var CMDS = [
     { n: 'ajuda', al: ['help', '?'], u: '/ajuda', d: 'mostra esta lista', run: cmdAjuda },
     { n: 'listar', al: ['ls', 'l'], u: '/listar [n|tudo]', d: 'últimos pensamentos (quantidade em /config)', run: cmdListar },
@@ -3790,7 +3836,7 @@ body {
     { n: 'notas', al: ['nota', 'notes', 'bloco'], u: '/notas', d: 'bloco de notas (pastas, fixar, tarefas)', run: cmdNotas },
     { n: 'nuvem', al: ['cloud', 'emryscloud'], u: '/nuvem', d: 'Emrys Cloud: seus arquivos privados na nuvem (Supabase)', run: cmdCloud },
     { n: 'sync', al: ['sincronizar', 'sincronia'], u: '/sync', d: 'sincroniza pensamentos e notas entre aparelhos (cifrado)', run: cmdSync },
-    { n: 'ia', al: ['ai', 'intelligence', 'chat', 'ajudante'], u: '/ia', d: 'Emrys Intelligence: chat com IA (histórico, copiar, apagar)', run: cmdIA },
+    { n: 'ia', al: ['ai', 'intelligence', 'chat', 'ajudante'], u: '/ia', d: 'Emrys Intelligence: chat com IA. “/ia teste” diagnostica problemas', run: cmdIA },
     { n: 'cofre', al: ['arquivos', 'files', 'vault'], u: '/cofre', d: 'arquivos pessoais guardados neste aparelho', run: cmdCofre },
     { n: 'config', al: ['configurar', 'cfg', 'ajustes'], u: '/config', d: 'aparência e comportamento do programa', run: cmdConfig },
     { n: 'backup', al: ['salvar'], u: '/backup', d: 'gera uma cópia completa para guardar', run: cmdBackup },
